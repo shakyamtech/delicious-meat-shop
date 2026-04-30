@@ -230,7 +230,9 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
             ) : (
               `Rs. ${product.price.toLocaleString()}`
             )}
-            <span style={{ fontSize: '0.8rem', opacity: 0.5, fontWeight: 'normal', marginLeft: '0.5rem' }}>/ Per Unit (Base)</span>
+            <span style={{ fontSize: '0.8rem', opacity: 0.5, fontWeight: 'normal', marginLeft: '0.5rem' }}>
+              {product.category === 'Frozen' ? '/ Per Packet' : '/ Per Unit (Base)'}
+            </span>
           </p>
           
           <div className="pdp-description">

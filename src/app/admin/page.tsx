@@ -1961,13 +1961,50 @@ export default function AdminPage() {
                   </div>
                   <input type="number" placeholder="Total Stock (Limit)" value={stock} onChange={(e) => setStock(e.target.value)} required />
                   <textarea placeholder="Product Description..." value={description} onChange={(e) => setDescription(e.target.value)} style={{ padding: "0.8rem", border: "1px solid var(--border)", borderRadius: "4px", minHeight: "80px" }}></textarea>
-                  {['Meat', 'Frozen'].includes(category) && (
+                  {category === 'Meat' && (
                     <div className="theme-card" style={{ padding: "0.8rem", borderRadius: "4px" }}>
                       <p style={{ fontSize: "0.8rem", fontWeight: "bold", marginBottom: "0.2rem" }}>Portion/Weight Variants (Stock per variant):</p>
                       <p style={{ fontSize: "0.65rem", color: "#6366f1", marginBottom: "0.5rem", fontWeight: "600" }}>ℹ️ Note: System will auto-calculate price (e.g., 500gm = 50% price, 250gm = 25%)</p>
                       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                         {['1kg', '500gm', '250gm', 'Whole', 'Half'].map(s => (
                           <div key={s} style={{ display: "flex", flexDirection: "column", gap: "0.2rem", width: "60px" }}>
+                            <label style={{ fontSize: "0.75rem", fontWeight: "600", textAlign: "center" }}>{s}</label>
+                            <input
+                              type="number"
+                              min="0"
+                              placeholder="0"
+                              value={sizeQuantities[s] || ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '') {
+                                   setSizeQuantities(prev => ({ ...prev, [s]: val }));
+                                   return;
+                                }
+                                const newVal = Number(val);
+                                const currentTotal = Object.entries(sizeQuantities).reduce((sum, [k, v]) => k === s ? sum : sum + Number(v || 0), 0);
+                                const maxAllowed = Number(stock || 0);
+                                
+                                if (currentTotal + newVal <= maxAllowed) {
+                                  setSizeQuantities(prev => ({ ...prev, [s]: val }));
+                                } else {
+                                  const remaining = Math.max(0, maxAllowed - currentTotal);
+                                  setSizeQuantities(prev => ({ ...prev, [s]: remaining.toString() }));
+                                }
+                              }}
+                              style={{ padding: "0.4rem", textAlign: "center" }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {category === 'Frozen' && (
+                    <div className="theme-card" style={{ padding: "0.8rem", borderRadius: "4px" }}>
+                      <p style={{ fontSize: "0.8rem", fontWeight: "bold", marginBottom: "0.5rem" }}>Packaging Units (Stock per type):</p>
+                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                        {['Packet', 'Box', 'Bulk Pack'].map(s => (
+                          <div key={s} style={{ display: "flex", flexDirection: "column", gap: "0.2rem", width: "70px" }}>
                             <label style={{ fontSize: "0.75rem", fontWeight: "600", textAlign: "center" }}>{s}</label>
                             <input
                               type="number"
