@@ -380,7 +380,7 @@
 
 .product-image {
   width: 100%;
-  aspect-ratio: 3/4;
+  aspect-ratio: 1/1; /* Square ratio for better product visibility */
   background-size: cover;
   background-position: center;
   background-color: var(--secondary);
