@@ -1827,20 +1827,7 @@ const PrintableBill = ({ printingOrders }: { printingOrders: any[] }) => {
           </table>
           <div className="bill-total" style={{ marginTop: '1rem', paddingTop: '0.8rem', borderTop: '1px solid black' }}>
             <div style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#666', marginBottom: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--success-color)', marginBottom: '0.4rem', borderTop: '1px solid #333', paddingTop: '1rem' }}>
-                <span>(+) Inventory Asset Value:</span>
-                <span>Rs. {inventoryCostValue.toLocaleString()}</span>
-              </div>
-              <div style={{ fontSize: '0.7rem', color: '#888', marginBottom: '1.5rem', fontStyle: 'italic' }}>
-                (This is the value of meat currently in your fridge)
-              </div>
-
-              <div className="profit-total-box" style={{ marginTop: '2rem' }}>
-                <p style={{ fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Net Business Profit</p>
-                <h3 style={{ fontSize: '2rem', color: netProfit >= 0 ? 'var(--success-color)' : '#ff4444' }}>
-                  TOTAL PROFIT: {netProfit >= 0 ? "" : "-"}Rs. {Math.abs(netProfit).toLocaleString()}
-                </h3>
-              </div>
+              Thank you for choosing Delicious Meat Shop. We appreciate your business!
             </div>
             <div style={{ fontSize: '0.8rem', color: '#000', textAlign: 'right' }}>
               Total Items: {(order.rawItems || order.items || []).reduce((acc: number, item: any) => acc + (item.quantity || 1), 0)}
