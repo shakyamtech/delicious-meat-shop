@@ -108,16 +108,15 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
   const getAdjustedPrice = (basePrice: number, size: string | null) => {
     if (!size) return basePrice;
     const s = size.toLowerCase();
-    if (s.includes('500gm') || s.includes('half')) return basePrice * 0.5;
+    if (s.includes('500gm') || s.includes('500ml') || s.includes('half')) return basePrice * 0.5;
     if (s.includes('250gm')) return basePrice * 0.25;
-    if (s.includes('1kg') || s.includes('whole')) return basePrice;
-    // Handle specific grams like 100gm if needed
+    if (s.includes('1kg') || s.includes('1 litre') || s.includes('whole')) return basePrice;
     if (s.includes('100gm')) return basePrice * 0.1;
     return basePrice;
   };
 
   const handleAddToCart = () => {
-    if (['Meat', 'Frozen', 'Bulk'].includes(product.category) && product.sizes && !selectedSize) {
+    if (['Meat', 'Frozen', 'Bulk', 'Dairy'].includes(product.category) && product.sizes && !selectedSize) {
       alert("Please select a weight / portion first.");
       return;
     }
@@ -231,7 +230,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
               `Rs. ${product.price.toLocaleString()}`
             )}
             <span style={{ fontSize: '0.8rem', opacity: 0.5, fontWeight: 'normal', marginLeft: '0.5rem' }}>
-              {product.category === 'Frozen' ? '/ Per Packet' : '/ Per Unit (Base)'}
+              {product.category === 'Frozen' ? '/ Per Packet' : product.category === 'Dairy' ? '/ Per Litre/Unit' : '/ Per Unit (Base)'}
             </span>
           </p>
           

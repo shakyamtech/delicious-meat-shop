@@ -2035,6 +2035,44 @@ export default function AdminPage() {
                       </div>
                     </div>
                   )}
+
+                  {category === 'Dairy' && (
+                    <div className="theme-card" style={{ padding: "0.8rem", borderRadius: "4px" }}>
+                      <p style={{ fontSize: "0.8rem", fontWeight: "bold", marginBottom: "0.2rem" }}>Dairy Units (Stock per variant):</p>
+                      <p style={{ fontSize: "0.65rem", color: "#6366f1", marginBottom: "0.5rem", fontWeight: "600" }}>ℹ️ Note: System will auto-calculate price (e.g., 500ml/gm = 50% price)</p>
+                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                        {['1 Litre', '500ml', '1kg', '500gm'].map(s => (
+                          <div key={s} style={{ display: "flex", flexDirection: "column", gap: "0.2rem", width: "65px" }}>
+                            <label style={{ fontSize: "0.75rem", fontWeight: "600", textAlign: "center" }}>{s}</label>
+                            <input
+                              type="number"
+                              min="0"
+                              placeholder="0"
+                              value={sizeQuantities[s] || ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '') {
+                                   setSizeQuantities(prev => ({ ...prev, [s]: val }));
+                                   return;
+                                }
+                                const newVal = Number(val);
+                                const currentTotal = Object.entries(sizeQuantities).reduce((sum, [k, v]) => k === s ? sum : sum + Number(v || 0), 0);
+                                const maxAllowed = Number(stock || 0);
+                                
+                                if (currentTotal + newVal <= maxAllowed) {
+                                  setSizeQuantities(prev => ({ ...prev, [s]: val }));
+                                } else {
+                                  const remaining = Math.max(0, maxAllowed - currentTotal);
+                                  setSizeQuantities(prev => ({ ...prev, [s]: remaining.toString() }));
+                                }
+                              }}
+                              style={{ padding: "0.4rem", textAlign: "center" }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {category === 'Bulk' && (
                     <div className="theme-card" style={{ padding: "0.8rem", borderRadius: "4px" }}>
                       <p style={{ fontSize: "0.8rem", fontWeight: "bold", marginBottom: "0.5rem" }}>Bulk/Wholesale Units:</p>
