@@ -5,6 +5,19 @@ import NepaliDate from "nepali-date-converter";
 import { supabase } from "@/lib/supabase";
 import "./admin.css";
 
+const getAdjustedPrice = (basePrice: number, size: string | null) => {
+  if (!size) return basePrice;
+  const s = size.toLowerCase();
+  if (s.includes('500gm') || s.includes('500ml') || s.includes('half')) return basePrice * 0.5;
+  if (s.includes('250gm')) return basePrice * 0.25;
+  if (s.includes('1.5kg')) return basePrice * 1.5;
+  if (s.includes('2kg')) return basePrice * 2.0;
+  if (s.includes('1kg') || s.includes('1 litre') || s.includes('whole')) return basePrice;
+  if (s.includes('2 litre')) return basePrice * 2.0;
+  if (s.includes('100gm')) return basePrice * 0.1;
+  return basePrice;
+};
+
 function AnalyticsSection({ orders, products, expenses = [], lastSync, isSyncing }: { orders: any[], products: any[], expenses?: any[], lastSync: Date | null, isSyncing: boolean }) {
   const [filterItemId, setFilterItemId] = useState<string>("ALL");
   const [isClient, setIsClient] = useState(false);
@@ -27,6 +40,18 @@ function AnalyticsSection({ orders, products, expenses = [], lastSync, isSyncing
     let costTotal = 0;
 
     // 1. Process Online Orders
+    const getMultiplier = (size: string | null) => {
+      if (!size) return 1;
+      const s = size.toLowerCase();
+      if (s.includes('500gm') || s.includes('500ml') || s.includes('half')) return 0.5;
+      if (s.includes('250gm')) return 0.25;
+      if (s.includes('1.5kg')) return 1.5;
+      if (s.includes('2kg')) return 2.0;
+      if (s.includes('100gm')) return 0.1;
+      if (s.includes('2 litre')) return 2.0;
+      return 1;
+    };
+
     filteredOrders.forEach(o => {
       if (!o.items || !Array.isArray(o.rawItems || o.items)) return;
       const orderItems = o.rawItems || o.items;
@@ -43,18 +68,24 @@ function AnalyticsSection({ orders, products, expenses = [], lastSync, isSyncing
         }
 
         let itemCost = item.cost;
+        const liveProduct = products.find(p => 
+          p.id?.toString() === item.id?.toString() || 
+          (p.name && item.name && p.name.toString().toLowerCase().trim() === item.name.toString().toLowerCase().trim())
+        );
+
         if (itemCost === undefined || itemCost === null) {
-          const liveProduct = products.find(p => 
-            p.id?.toString() === item.id?.toString() || 
-            (p.name && item.name && p.name.toString().toLowerCase().trim() === item.name.toString().toLowerCase().trim())
-          );
           itemCost = liveProduct?.cost || 0;
         }
+        
+        // Adjust cost based on variant
+        const multiplier = getMultiplier(item.selectedSize || item.size || null);
+        const adjustedCost = (Number(itemCost) * multiplier);
+
         let itemPrice = item.price || 0;
         let qty = Number(item.quantity || 1);
 
         revenue += (Number(itemPrice) * qty);
-        costTotal += (Number(itemCost) * qty);
+        costTotal += (adjustedCost * qty);
       });
     });
 
@@ -74,16 +105,22 @@ function AnalyticsSection({ orders, products, expenses = [], lastSync, isSyncing
       revenue += saleAmount;
 
       // Extract COGS for offline sale using unified regex
+      // Desc format: Offline Sale: Product Name [Variant] (xQty), ... [PID:ID][SZ:Variant]
       const pidMatches = Array.from((sale.description || "").matchAll(/\[PID:(.+?)\]/g)) as any[];
+      const szMatches = Array.from((sale.description || "").matchAll(/\[SZ:(.+?)\]/g)) as any[];
       const qtyMatches = Array.from((sale.description || "").matchAll(/\(x(\d*\.?\d+)\)/g)) as any[];
       
       let saleCost = 0;
       if (pidMatches.length > 0) {
         pidMatches.forEach((match: any, index: number) => {
           const pid = match[1];
+          const sz = szMatches[index] ? szMatches[index][1] : null;
           const qty = qtyMatches[index] ? parseFloat(qtyMatches[index][1]) : 1;
           const product = products.find(p => p.id?.toString() === pid);
-          if (product) saleCost += (Number(product.cost || 0) * qty);
+          if (product) {
+            const multiplier = getMultiplier(sz);
+            saleCost += (Number(product.cost || 0) * multiplier * qty);
+          }
         });
       } else {
         // Fallback for single-item legacy entries
@@ -103,14 +140,19 @@ function AnalyticsSection({ orders, products, expenses = [], lastSync, isSyncing
       revenue -= retAmount;
 
       const pidMatches = Array.from((ret.description || "").matchAll(/\[PID:(.+?)\]/g)) as any[];
+      const szMatches = Array.from((ret.description || "").matchAll(/\[SZ:(.+?)\]/g)) as any[];
       const qtyMatches = Array.from((ret.description || "").matchAll(/\(x(\d+)\)/g)) as any[];
       
       if (pidMatches.length > 0) {
         pidMatches.forEach((match: any, index: number) => {
           const pid = match[1];
+          const sz = szMatches[index] ? szMatches[index][1] : null;
           const qty = qtyMatches[index] ? Number(qtyMatches[index][1]) : 1;
           const product = products.find(p => p.id?.toString() === pid);
-          if (product) costTotal -= (Number(product.cost || 0) * qty);
+          if (product) {
+            const multiplier = getMultiplier(sz);
+            costTotal -= (Number(product.cost || 0) * multiplier * qty);
+          }
         });
       }
     });
@@ -353,6 +395,7 @@ export default function AdminPage() {
 
   // POS (Point of Sale) State
   const [posProductId, setPosProductId] = useState("");
+  const [posSelectedSize, setPosSelectedSize] = useState("");
   const [posQty, setPosQty] = useState("1");
   const [posCart, setPosCart] = useState<any[]>([]);
   const [posCustomerName, setPosCustomerName] = useState("");
@@ -539,8 +582,8 @@ export default function AdminPage() {
       }
 
       // 2. Log Ledger Entry
-      const itemStrings = posCart.map(i => `${i.name} (x${i.quantity})`);
-      const pidStrings = posCart.map(i => `[PID:${i.id}]`).join(' ');
+      const itemStrings = posCart.map(i => `${i.name}${i.selectedSize ? ` [${i.selectedSize}]` : ""} (x${i.quantity})`);
+      const pidStrings = posCart.map(i => `[PID:${i.id}]${i.selectedSize ? `[SZ:${i.selectedSize}]` : ""}`).join(' ');
       const cartTotal = posCart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
       const discountVal = cartTotal - Number(posAmount);
       
@@ -1654,13 +1697,39 @@ export default function AdminPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                     <div className="pos-input-group" style={{ background: 'rgba(0,0,0,0.02)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--admin-border)' }}>
                       <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1rem', color: 'var(--admin-text-muted)' }}>Product Selection</label>
+                        <select 
+                          value={posProductId} 
+                          onChange={(e) => {
+                            setPosProductId(e.target.value);
+                            setPosSelectedSize("");
+                          }} 
+                          style={{ width: '100%', padding: '1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '12px', fontSize: '1rem', marginBottom: '1rem' }}
+                        >
+                          <option value="">Select Product...</option>
+                          {products.map(p => <option key={p.id} value={p.id}>{p.name} (Stock: {p.stock})</option>)}
+                        </select>
+
+                        {posProductId && products.find(p => p.id.toString() === posProductId)?.sizes && (
+                          <select 
+                            value={posSelectedSize} 
+                            onChange={(e) => setPosSelectedSize(e.target.value)} 
+                            style={{ width: '100%', padding: '1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '12px', fontSize: '1rem', marginBottom: '1rem' }}
+                          >
+                            <option value="">Select Variant...</option>
+                            {products.find(p => p.id.toString() === posProductId).sizes.split(',').map((sStr: string) => {
+                              const szName = sStr.split(':')[0].trim();
+                              return <option key={szName} value={szName}>{szName}</option>;
+                            })}
+                          </select>
+                        )}
+
                         <input 
                           type="number" 
                           step="any"
                           placeholder="Qty"
                           value={posQty} 
                           onChange={(e) => setPosQty(e.target.value)} 
-                          style={{ width: '100%', padding: '1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '12px', fontSize: '1rem', textAlign: 'center' }}
+                          style={{ width: '100%', padding: '1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '12px', fontSize: '1rem', textAlign: 'center', marginBottom: '1rem' }}
                         />
                         <input 
                           type="number" 
@@ -1675,9 +1744,10 @@ export default function AdminPage() {
                           onClick={() => {
                             const p = products.find(prod => prod.id.toString() === posProductId);
                             if (!p) return alert("Please select a product");
-                            const finalPrice = posManualPrice ? Number(posManualPrice) : Number(p.price);
-                            setPosCart([...posCart, { id: p.id, name: p.name, quantity: Number(posQty), price: finalPrice }]);
+                            const finalPrice = posManualPrice ? Number(posManualPrice) : getAdjustedPrice(Number(p.price), posSelectedSize);
+                            setPosCart([...posCart, { id: p.id, name: p.name, quantity: Number(posQty), price: finalPrice, selectedSize: posSelectedSize }]);
                             setPosProductId("");
+                            setPosSelectedSize("");
                             setPosQty("1");
                             setPosManualPrice("");
                           }}
@@ -1982,7 +2052,7 @@ export default function AdminPage() {
                       <p style={{ fontSize: "0.8rem", fontWeight: "bold", marginBottom: "0.2rem" }}>Portion/Weight Variants (Stock per variant):</p>
                       <p style={{ fontSize: "0.65rem", color: "#6366f1", marginBottom: "0.5rem", fontWeight: "600" }}>ℹ️ Note: System will auto-calculate price (e.g., 500gm = 50% price, 250gm = 25%)</p>
                       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                        {['1kg', '500gm', '250gm', 'Whole', 'Half'].map(s => (
+                        {['1kg', '1.5kg', '2kg', '500gm', '250gm', 'Whole', 'Half'].map(s => (
                           <div key={s} style={{ display: "flex", flexDirection: "column", gap: "0.2rem", width: "60px" }}>
                             <label style={{ fontSize: "0.75rem", fontWeight: "600", textAlign: "center" }}>{s}</label>
                             <input

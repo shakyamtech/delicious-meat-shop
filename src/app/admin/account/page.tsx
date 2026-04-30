@@ -756,7 +756,7 @@ export default function AccountDashboard() {
 
   const grossProfit = totalSalesRevenue - totalCOGS + totalReturnedCOGS;
 
-  const totalAssetPurchases = expenses.filter(e => e.category === "Inventory Purchase (Asset)").reduce((sum, e) => sum + Number(e.amount), 0);
+  const totalAssetPurchases = expenses.filter(e => e.category === "Inventory Purchase (Asset)" || e.category === "Inventory Restock").reduce((sum, e) => sum + Number(e.amount), 0);
   const totalOtherIncome = expenses.filter(e => e.type === "INCOME").reduce((sum, e) => sum + Number(e.amount), 0);
   const totalOfflineCOGS = expenses
     .filter(e => (e.type === "INCOME" && e.category === "Offline Sale") || (e.type === "EXPENSE" && e.category === "Refund Paid"))
@@ -787,7 +787,7 @@ export default function AccountDashboard() {
 
   const totalDamageLoss = expenses.filter(e => e.category === "Inventory Damage / Loss").reduce((sum, e) => sum + Number(e.amount), 0);
   const totalRefundsPaid = expenses.filter(e => e.category === "Refund Paid").reduce((sum, e) => sum + Number(e.amount), 0);
-  const totalOpEx = expenses.filter(e => e.type !== "INCOME" && e.category !== "Inventory Damage / Loss" && e.category !== "Refund Paid" && e.category !== "Inventory Purchase (Asset)").reduce((sum, e) => sum + Number(e.amount), 0);
+  const totalOpEx = expenses.filter(e => e.type !== "INCOME" && e.category !== "Inventory Damage / Loss" && e.category !== "Refund Paid" && e.category !== "Inventory Purchase (Asset)" && e.category !== "Inventory Restock").reduce((sum, e) => sum + Number(e.amount), 0);
   const totalOfflineSales = expenses.filter(e => e.type === "INCOME" && e.category === "Offline Sale").reduce((sum, e) => sum + Number(e.amount), 0);
   const totalDiscountsProvided = expenses
     .filter(e => e.type === "INCOME" && e.category === "Offline Sale")

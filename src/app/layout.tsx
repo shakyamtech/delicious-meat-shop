@@ -13,16 +13,16 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Delicious Meat Shop | Fresh Cold Store",
     description: "Your go-to store for fresh, premium quality meat products.",
-    url: "https://lyka-nepal.example.com",
-    siteName: "LYKA Nepal",
+    url: "https://deliciousmeatshop.com",
+    siteName: "Delicious Meat Shop",
     images: [{ url: "/og-image.jpg", width: 1200, height: 630 }],
     locale: "en_NP",
     type: "website",
   },
   icons: {
-    icon: "/favicon.svg?v=1",
-    shortcut: "/favicon.svg?v=1",
-    apple: "/favicon.svg?v=1",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
   },
 };
 
@@ -41,11 +41,11 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "ClothingStore",
-              "name": "LYKA Nepal",
-              "image": "https://lyka-nepal.example.com/logo.png",
-              "@id": "https://lyka-nepal.example.com",
-              "url": "https://lyka-nepal.example.com",
+              "@type": "Store",
+              "name": "Delicious Meat Shop",
+              "image": "https://deliciousmeatshop.com/logo.png",
+              "@id": "https://deliciousmeatshop.com",
+              "url": "https://deliciousmeatshop.com",
               "telephone": "+9771234567890",
               "address": {
                 "@type": "PostalAddress",
@@ -65,8 +65,8 @@ export default function RootLayout({
                   "Saturday",
                   "Sunday"
                 ],
-                "opens": "10:00",
-                "closes": "20:00"
+                "opens": "07:00",
+                "closes": "21:00"
               }
             })
           }}

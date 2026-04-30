@@ -110,6 +110,8 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
     const s = size.toLowerCase();
     if (s.includes('500gm') || s.includes('500ml') || s.includes('half')) return basePrice * 0.5;
     if (s.includes('250gm')) return basePrice * 0.25;
+    if (s.includes('1.5kg')) return basePrice * 1.5;
+    if (s.includes('2kg')) return basePrice * 2.0;
     if (s.includes('1kg') || s.includes('1 litre') || s.includes('whole')) return basePrice;
     if (s.includes('2 litre')) return basePrice * 2.0;
     if (s.includes('100gm')) return basePrice * 0.1;
