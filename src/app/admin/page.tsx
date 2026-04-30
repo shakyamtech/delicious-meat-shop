@@ -1709,7 +1709,6 @@ export default function AdminPage() {
                         />
                       </div>
                     </div>
-                  </div>
                 </section>
 
                 <section className="theme-card pos-summary" style={{ padding: '2.5rem', borderRadius: '24px', display: 'flex', flexDirection: 'column', background: 'var(--admin-card)', boxShadow: '0 20px 50px rgba(0,0,0,0.1)' }}>

@@ -495,7 +495,7 @@ export default function AccountDashboard() {
               alert(`⚠️ Out of Stock for ${product.name}! Only ${product.stock} units remaining.`);
               return;
             }
-            newStock -= item.quantity;
+            newStock = parseFloat((newStock - item.quantity).toFixed(2));
           } else if (expCategory === "Refund Paid" && shouldUpdateStock) {
             newStock += item.quantity;
           }
@@ -503,7 +503,7 @@ export default function AccountDashboard() {
           if (shouldUpdateStock || expCategory === "Offline Sale" || expCategory === "Inventory Damage / Loss") {
             const updateBody: any = { id: item.id, stock: newStock };
             if (expCategory === "Offline Sale") {
-              updateBody.salesCount = (Number(product.salesCount) || 0) + item.quantity;
+              updateBody.salesCount = parseFloat(((Number(product.salesCount) || 0) + item.quantity).toFixed(2));
             }
 
             const stockRes = await fetch("/api/products", {
