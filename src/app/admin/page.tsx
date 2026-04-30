@@ -75,13 +75,13 @@ function AnalyticsSection({ orders, products, expenses = [], lastSync, isSyncing
 
       // Extract COGS for offline sale using unified regex
       const pidMatches = Array.from((sale.description || "").matchAll(/\[PID:(.+?)\]/g)) as any[];
-      const qtyMatches = Array.from((sale.description || "").matchAll(/\(x(\d+)\)/g)) as any[];
+      const qtyMatches = Array.from((sale.description || "").matchAll(/\(x(\d*\.?\d+)\)/g)) as any[];
       
       let saleCost = 0;
       if (pidMatches.length > 0) {
         pidMatches.forEach((match: any, index: number) => {
           const pid = match[1];
-          const qty = qtyMatches[index] ? Number(qtyMatches[index][1]) : 1;
+          const qty = qtyMatches[index] ? parseFloat(qtyMatches[index][1]) : 1;
           const product = products.find(p => p.id?.toString() === pid);
           if (product) saleCost += (Number(product.cost || 0) * qty);
         });
@@ -89,8 +89,8 @@ function AnalyticsSection({ orders, products, expenses = [], lastSync, isSyncing
         // Fallback for single-item legacy entries
         const productName = sale.description.replace("Offline Sale: ", "").split(" (x")[0];
         const p = products.find(prod => prod.name === productName);
-        const qtyMatch = sale.description.match(/\(x(\d+)\)/);
-        const qty = qtyMatch ? Number(qtyMatch[1]) : 1;
+        const qtyMatch = sale.description.match(/\(x(\d*\.?\d+)\)/);
+        const qty = qtyMatch ? parseFloat(qtyMatch[1]) : 1;
         saleCost = p ? (Number(p.cost) || 0) * qty : 0;
       }
       costTotal += saleCost;

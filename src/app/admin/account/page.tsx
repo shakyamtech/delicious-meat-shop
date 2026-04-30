@@ -41,7 +41,7 @@ export default function AccountDashboard() {
   const handlePrintOffline = (e: any) => {
     // Parse ALL products from description: "Item A (x1), Item B (x2) Name | Phone [PID:41] [PID:42]"
     const pidMatches = Array.from(e.description.matchAll(/\[PID:(\d+)\]/g)) as any[];
-    const qtyMatches = Array.from(e.description.matchAll(/\(x(\d+)\)/g)) as any[];
+    const qtyMatches = Array.from(e.description.matchAll(/\(x(\d*\.?\d+)\)/g)) as any[];
     const discMatch = e.description.match(/\[DISC:(\d+)\]/);
     const discount = discMatch ? Number(discMatch[1]) : 0;
     
@@ -50,7 +50,7 @@ export default function AccountDashboard() {
     if (pidMatches.length > 0) {
       pidMatches.forEach((match: any, index: number) => {
         const pid = match[1];
-        const qty = qtyMatches[index] ? Number(qtyMatches[index][1]) : 1;
+        const qty = qtyMatches[index] ? parseFloat(qtyMatches[index][1]) : 1;
         const product = products.find(p => p.id.toString() === pid);
         if (product) {
           items.push({
@@ -62,8 +62,8 @@ export default function AccountDashboard() {
       });
     } else {
       // Fallback for single item legacy format
-      const qtyMatch = e.description.match(/\(x(\d+)\)/);
-      const qty = qtyMatch ? Number(qtyMatch[1]) : 1;
+      const qtyMatch = e.description.match(/\(x(\d*\.?\d+)\)/);
+      const qty = qtyMatch ? parseFloat(qtyMatch[1]) : 1;
       const cleanDesc = e.description.replace(/^Offline Sale:\s*/i, '').split('[PID:')[0].trim();
       const legacyItemName = cleanDesc.split('|')[0].split('(x')[0].trim();
       
@@ -571,15 +571,17 @@ export default function AccountDashboard() {
       }
 
       // 3. Log Entry
+      const entryPayload: any = { 
+        category: expCategory, 
+        description: finalDesc,
+        amount: totalAmount 
+      };
+      if (expType) entryPayload.type = expType;
+
       const res = await fetch("/api/expenses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          type: expType, 
-          category: expCategory, 
-          description: finalDesc,
-          amount: totalAmount 
-        })
+        body: JSON.stringify(entryPayload)
       });
 
       // 4. Cleanup Order History (Optional for Refunds)
@@ -619,7 +621,7 @@ export default function AccountDashboard() {
     setModalConfig({
       show: true,
       title: "Delete Ledger Entry",
-      message: `Are you sure you want to delete this ${expense.type.toLowerCase()}? This will also automatically REVERSE any stock changes associated with this entry.`,
+      message: `Are you sure you want to delete this ${(expense.type || "entry").toLowerCase()}? This will also automatically REVERSE any stock changes associated with this entry.`,
       confirmLabel: "Delete & Reverse Stock",
       type: 'danger',
       action: async () => {
@@ -627,7 +629,7 @@ export default function AccountDashboard() {
         try {
           // 1. Check for products to reverse stock
           const pidMatches = Array.from((expense.description || "").matchAll(/\[PID:(.+?)\]/g)) as any[];
-          const qtyMatches = Array.from((expense.description || "").matchAll(/\(x(\d+)\)/g)) as any[];
+          const qtyMatches = Array.from((expense.description || "").matchAll(/\(x(\d*\.?\d+)\)/g)) as any[];
 
           if (pidMatches.length > 0) {
             for (let i = 0; i < pidMatches.length; i++) {
@@ -948,7 +950,8 @@ export default function AccountDashboard() {
                       <label style={{ fontSize: "0.9rem" }}>Quantity:</label>
                       <input 
                         type="number" 
-                        min="1" 
+                        min="0.1" 
+                        step="any"
                         value={offlineQty} 
                         onChange={(e) => {
                           setOfflineQty(e.target.value);
@@ -1302,7 +1305,7 @@ export default function AccountDashboard() {
                 if (pidMatches.length > 0) {
                   pidMatches.forEach((match: any, index: number) => {
                     const pid = match[1];
-                    const qty = qtyMatches[index] ? Number(qtyMatches[index][1]) : 1;
+                    const qty = qtyMatches[index] ? parseFloat(qtyMatches[index][1]) : 1;
                     const prod = products.find(prod => prod.id?.toString() === pid);
                     if (prod) totalCogs += (Number(prod.cost) || 0) * qty;
                   });
@@ -1310,8 +1313,8 @@ export default function AccountDashboard() {
                   // Fallback for single-item legacy entries
                   const productName = e.description.replace("Offline Sale: ", "").split(" (x")[0];
                   const p = products.find(prod => prod.name === productName);
-                  const qtyMatch = e.description.match(/\(x(\d+)\)/);
-                  const qty = qtyMatch ? Number(qtyMatch[1]) : 1;
+                  const qtyMatch = e.description.match(/\(x(\d*\.?\d+)\)/);
+                  const qty = qtyMatch ? parseFloat(qtyMatch[1]) : 1;
                   totalCogs = p ? (Number(p.cost) || 0) * qty : 0;
                 }
 
