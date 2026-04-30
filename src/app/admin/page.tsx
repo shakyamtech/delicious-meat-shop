@@ -360,6 +360,7 @@ export default function AdminPage() {
   const [posDiscount, setPosDiscount] = useState("");
   const [posAmount, setPosAmount] = useState("");
   const [isPOSProcessing, setIsPOSProcessing] = useState(false);
+  const [posManualPrice, setPosManualPrice] = useState("");
   const [printingPOSData, setPrintingPOSData] = useState<any | null>(null);
   
   // Custom Modal State
@@ -1653,46 +1654,34 @@ export default function AdminPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                     <div className="pos-input-group" style={{ background: 'rgba(0,0,0,0.02)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--admin-border)' }}>
                       <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1rem', color: 'var(--admin-text-muted)' }}>Product Selection</label>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 140px', gap: '1rem' }}>
-                        <select 
-                          value={posProductId} 
-                          onChange={(e) => setPosProductId(e.target.value)}
-                          style={{ width: '100%', padding: '1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '12px', fontSize: '1rem' }}
-                        >
-                          <option value="">-- Select Product --</option>
-                          {products.map(p => (
-                            <option key={p.id} value={p.id}>{p.name} (Stock: {p.stock})</option>
-                          ))}
-                        </select>
                         <input 
                           type="number" 
-                          min="1" 
+                          step="any"
                           placeholder="Qty"
                           value={posQty} 
                           onChange={(e) => setPosQty(e.target.value)} 
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              const p = products.find(prod => prod.id.toString() === posProductId);
-                              if (p) {
-                                if (p.stock < Number(posQty)) return alert("Not enough stock!");
-                                setPosCart([...posCart, { id: p.id, name: p.name, quantity: Number(posQty), price: Number(p.price) }]);
-                                setPosProductId("");
-                                setPosQty("1");
-                              }
-                            }
-                          }}
                           style={{ width: '100%', padding: '1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '12px', fontSize: '1rem', textAlign: 'center' }}
                         />
+                        <input 
+                          type="number" 
+                          placeholder="Price override (Optional)"
+                          value={posManualPrice} 
+                          onChange={(e) => setPosManualPrice(e.target.value)} 
+                          style={{ width: '100%', padding: '1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '12px', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                      <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
                         <button 
                           onClick={() => {
                             const p = products.find(prod => prod.id.toString() === posProductId);
                             if (!p) return alert("Please select a product");
-                            if (p.stock < Number(posQty)) return alert("Not enough stock!");
-                            setPosCart([...posCart, { id: p.id, name: p.name, quantity: Number(posQty), price: Number(p.price) }]);
+                            const finalPrice = posManualPrice ? Number(posManualPrice) : Number(p.price);
+                            setPosCart([...posCart, { id: p.id, name: p.name, quantity: Number(posQty), price: finalPrice }]);
                             setPosProductId("");
                             setPosQty("1");
+                            setPosManualPrice("");
                           }}
-                          style={{ padding: '1rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)' }}
+                          style={{ flex: 1, padding: '1rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)' }}
                         >
                           Add Item
                         </button>
@@ -1738,19 +1727,47 @@ export default function AdminPage() {
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
                         {posCart.map((item, idx) => (
-                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.01)', padding: '1rem', borderRadius: '12px' }}>
-                            <div>
-                              <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{item.name}</div>
-                              <div style={{ fontSize: '0.8rem', color: 'var(--admin-text-muted)', marginTop: '0.2rem' }}>{item.quantity} x NPR {item.price.toLocaleString()}</div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                              <strong style={{ fontSize: '1.1rem' }}>NPR {(item.quantity * item.price).toLocaleString()}</strong>
+                          <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', background: 'rgba(0,0,0,0.01)', padding: '1.2rem', borderRadius: '16px', border: '1px solid var(--admin-border)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <strong style={{ fontSize: '1rem' }}>{item.name}</strong>
                               <button 
                                 onClick={() => setPosCart(posCart.filter((_, i) => i !== idx))}
                                 style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', cursor: 'pointer', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                               >
                                 &times;
                               </button>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                <label style={{ fontSize: '0.65rem', fontWeight: 'bold', opacity: 0.6 }}>QUANTITY</label>
+                                <input 
+                                  type="number"
+                                  step="any"
+                                  value={item.quantity}
+                                  onChange={(e) => {
+                                    const newCart = [...posCart];
+                                    newCart[idx].quantity = Number(e.target.value);
+                                    setPosCart(newCart);
+                                  }}
+                                  style={{ padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--admin-border)', background: 'var(--admin-card)', color: 'var(--admin-text)', fontSize: '0.9rem' }}
+                                />
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                <label style={{ fontSize: '0.65rem', fontWeight: 'bold', opacity: 0.6 }}>PRICE (NPR)</label>
+                                <input 
+                                  type="number"
+                                  value={item.price}
+                                  onChange={(e) => {
+                                    const newCart = [...posCart];
+                                    newCart[idx].price = Number(e.target.value);
+                                    setPosCart(newCart);
+                                  }}
+                                  style={{ padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--admin-border)', background: 'var(--admin-card)', color: 'var(--admin-text)', fontSize: '0.9rem' }}
+                                />
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right', fontWeight: '900', color: 'var(--primary)', fontSize: '1.1rem' }}>
+                              NPR {(item.quantity * item.price).toLocaleString()}
                             </div>
                           </div>
                         ))}
@@ -2041,7 +2058,7 @@ export default function AdminPage() {
                       <p style={{ fontSize: "0.8rem", fontWeight: "bold", marginBottom: "0.2rem" }}>Dairy Units (Stock per variant):</p>
                       <p style={{ fontSize: "0.65rem", color: "#6366f1", marginBottom: "0.5rem", fontWeight: "600" }}>ℹ️ Note: System will auto-calculate price (e.g., 500ml/gm = 50% price)</p>
                       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                        {['1 Litre', '500ml', '1kg', '500gm'].map(s => (
+                        {['2 Litre', '1 Litre', '500ml', '1kg', '500gm'].map(s => (
                           <div key={s} style={{ display: "flex", flexDirection: "column", gap: "0.2rem", width: "65px" }}>
                             <label style={{ fontSize: "0.75rem", fontWeight: "600", textAlign: "center" }}>{s}</label>
                             <input
