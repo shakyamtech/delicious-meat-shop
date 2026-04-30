@@ -38,9 +38,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             <div className="footer-logo-wrap">
               <SiteLogo />
             </div>
-            <p style={{ marginTop: '1.5rem' }}>
-              Premium Women&apos;s Fashion.<br />
-              Curated styles for the modern woman.
+            <p style={{ marginTop: '1.5rem', lineHeight: '1.6', opacity: 0.8 }}>
+              Premium Quality Meat & Cold Store.<br />
+              Fresh, hygienic, and expertly sourced.
             </p>
           </div>
           <div>
@@ -58,9 +58,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           </div>
           <div>
             <h3>Shop</h3>
-            <p><Link href="/?category=Clothes#collection" style={{ color: '#aaa', display: 'block', marginBottom: '0.4rem', textDecoration: 'none' }}>Clothes</Link></p>
-            <p><Link href="/?category=Bags%20%26%20Accessories#collection" style={{ color: '#aaa', display: 'block', marginBottom: '0.4rem', textDecoration: 'none' }}>Bags &amp; Accessories</Link></p>
-            <p><Link href="/?category=Shoes#collection" style={{ color: '#aaa', display: 'block', marginBottom: '0.4rem', textDecoration: 'none' }}>Shoes</Link></p>
+            <p><Link href="/?category=Poultry#collection" style={{ color: '#aaa', display: 'block', marginBottom: '0.4rem', textDecoration: 'none' }}>Fresh Poultry</Link></p>
+            <p><Link href="/?category=Buff%20%26%20Pork#collection" style={{ color: '#aaa', display: 'block', marginBottom: '0.4rem', textDecoration: 'none' }}>Buff &amp; Pork</Link></p>
+            <p><Link href="/?category=Frozen#collection" style={{ color: '#aaa', display: 'block', marginBottom: '0.4rem', textDecoration: 'none' }}>Frozen Specials</Link></p>
           </div>
           <div className="footer-customer-care">
             <h3>Customer Care</h3>
@@ -83,7 +83,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             </div>
             <p><Link href="/request-return" style={{ color: '#aaa', display: 'block', marginBottom: '0.4rem', textDecoration: 'none' }}>Returns &amp; Exchanges</Link></p>
             <p><Link href="/shipping" style={{ color: '#aaa', display: 'block', marginBottom: '0.4rem', textDecoration: 'none' }}>Shipping Information</Link></p>
-            <p><Link href="/size-guide" style={{ color: '#aaa', display: 'block', marginBottom: '0.4rem', textDecoration: 'none' }}>Size Guide</Link></p>
+            <p><Link href="#" style={{ color: '#aaa', display: 'block', marginBottom: '0.4rem', textDecoration: 'none' }}>Quality Assurance</Link></p>
           </div>
         </div>
         <div className="footer-bottom">
