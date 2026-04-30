@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="400" height="120">
+  <!-- NIC ASIA Red Rounded Rectangle Logo -->
+  <g transform="translate(0, 10)">
+    <!-- Red Background -->
+    <rect x="0" y="0" width="300" height="90" rx="15" ry="15" fill="#E31837" />
+    
+    <!-- White Text: NIC ASIA -->
+    <text x="150" y="55" font-family="'Times New Roman', Times, serif" font-weight="bold" font-size="38" letter-spacing="1" fill="#FFFFFF" text-anchor="middle">NIC ASIA</text>
+    
+    <!-- White Text: BANK -->
+    <text x="150" y="78" font-family="Arial, sans-serif" font-weight="600" font-size="16" letter-spacing="8" fill="#FFFFFF" text-anchor="middle">BANK</text>
+  </g>
+</svg>
