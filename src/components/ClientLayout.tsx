@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Navigation from "../app/Navigation";
 import FloatingContact from "../app/FloatingContact";
+import FloatingCart from "../app/FloatingCart";
 import SiteLogo from "../app/SiteLogo";
 import Link from "next/link";
 import NepaliDate from "nepali-date-converter";

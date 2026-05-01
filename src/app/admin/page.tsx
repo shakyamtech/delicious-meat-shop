@@ -234,7 +234,7 @@ function AnalyticsSection({ orders, products, expenses = [], lastSync, isSyncing
   );
 }
 
-function AdminHeader({ currentUser, weather, themeMode, toggleTheme, refreshWeather, isRefreshing }: { currentUser: any, weather: any, themeMode: string, toggleTheme: () => void, refreshWeather: () => void, isRefreshing: boolean }) {
+function AdminHeader({ currentUser, weather, themeMode, toggleTheme, refreshWeather, isRefreshing, totalNotifications }: { currentUser: any, weather: any, themeMode: string, toggleTheme: () => void, refreshWeather: () => void, isRefreshing: boolean, totalNotifications: number }) {
   if (!weather || !currentUser) return null;
   const hour = new Date().getHours();
 
@@ -265,6 +265,24 @@ function AdminHeader({ currentUser, weather, themeMode, toggleTheme, refreshWeat
         </h1>
         <p style={{ color: 'var(--admin-text-muted)', fontSize: '1rem', margin: '0.4rem 0 0 0' }}>Welcome back to your Admin Suite.</p>
       </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+        {/* Notification Bell */}
+        <div style={{ position: 'relative', cursor: 'pointer' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          {totalNotifications > 0 && (
+            <span style={{ 
+              position: 'absolute', top: '-5px', right: '-5px', 
+              background: '#ef4444', color: 'white', 
+              borderRadius: '50%', width: '18px', height: '18px', 
+              fontSize: '0.65rem', display: 'flex', alignItems: 'center', 
+              justifyContent: 'center', fontWeight: 'bold',
+              boxShadow: '0 2px 5px rgba(239, 68, 68, 0.3)'
+            }}>
+              {totalNotifications}
+            </span>
+          )}
+        </div>
       
       <div className="weather-card" style={{ 
         display: 'flex', 
@@ -1622,6 +1640,21 @@ export default function AdminPage() {
             <span>Categories</span>
           </button>
           <button 
+            className={`sidebar-item ${activeTab === 'wishlist' ? 'active' : ''}`}
+            onClick={() => setActiveTab('wishlist')}
+          >
+            <div className="sidebar-icon-wrapper">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            </div>
+            <span>Wishlist</span>
+            <div className="desktop-spacer" />
+            {wishlist.length > 0 && (
+              <span className="order-badge" style={{ background: '#f43f5e' }}>
+                {wishlist.length}
+              </span>
+            )}
+          </button>
+          <button 
             className="sidebar-item"
             onClick={() => window.location.href = '/admin/account'}
           >
@@ -1667,8 +1700,9 @@ export default function AdminPage() {
           weather={weather} 
           themeMode={themeMode} 
           toggleTheme={toggleTheme} 
-          refreshWeather={updateLocation}
+          refreshWeather={updateLocation} 
           isRefreshing={isWeatherRefreshing}
+          totalNotifications={orders.filter(o => !o.status || o.status === 'Pending Verification').length + wishlist.length}
         />
 
         <div className="tab-content">

@@ -170,8 +170,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
       });
       if (res.ok) {
         alert("Success! We'll notify you via SMS/WhatsApp when this item is restocked.");
-        setShowWishlistModal(false);
-        setWishlistPhone("");
+        router.push('/');
       } else {
         alert("Failed to join wishlist. Please try again.");
       }
@@ -279,13 +278,24 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
               <button onClick={() => setQuantity(quantity + 1)}>+</button>
             </div>
 
-            <button 
-              className="pdp-add-to-cart" 
-              onClick={handleAddToCart}
-              disabled={product.stock <= 0}
-            >
-              {product.stock > 0 ? "ADD TO CART" : "SOLD OUT"}
-            </button>
+            {product.stock > 0 ? (
+              <button 
+                className="pdp-add-to-cart" 
+                onClick={handleAddToCart}
+              >
+                ADD TO CART
+              </button>
+            ) : (
+              <button 
+                className="pdp-add-to-cart wishlist-trigger" 
+                onClick={() => {
+                  setWishlistSize(null);
+                  setShowWishlistModal(true);
+                }}
+              >
+                NOTIFY ME
+              </button>
+            )}
           </div>
           
           <div className="pdp-shipping-info">

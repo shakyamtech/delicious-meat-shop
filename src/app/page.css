@@ -430,6 +430,35 @@
   transform: translateY(0);
 }
 
+.wishlist-heart-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 15;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+  color: #ccc;
+}
+
+.wishlist-heart-btn:hover {
+  transform: scale(1.1);
+  color: var(--primary);
+}
+
+.wishlist-heart-btn.active {
+  color: var(--primary);
+  background: white;
+}
+
 .product-info {
   padding: 1.25rem 0.5rem 0.5rem 0.5rem;
   display: flex !important;
@@ -599,29 +628,29 @@
   scroll-margin-top: 140px; /* Prevent fixed header from covering title */
 }
 
+/* Cart Section with Trolley Handle Aesthetic */
 .billing-container {
   max-width: 680px;
   margin: 0 auto;
   background: white;
-  border: 1px solid var(--border);
-  padding: 3.5rem;
-  border-radius: 2px;
+  border: 1px solid rgba(0,0,0,0.05);
+  padding: 4.5rem 3rem 3rem; /* Extra top padding for handle */
+  border-radius: 12px;
   position: relative;
-  box-shadow: 0 5px 25px rgba(0,0,0,0.03);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.03);
 }
 
-/* Very Simple Minimalist Handle */
 .billing-container::before {
   content: '';
   position: absolute;
-  top: 12px;
+  top: 15px;
   left: 50%;
   transform: translateX(-50%);
-  width: 70px;
-  height: 30px;
-  border: 2px solid #f0f0f0; /* Faint grey for a clean look */
+  width: 100px;
+  height: 35px;
+  border: 3px solid #e0e0e0;
   border-bottom: none;
-  border-radius: 35px 35px 0 0;
+  border-radius: 40px 40px 0 0;
   z-index: 1;
 }
 
@@ -633,7 +662,7 @@
 .billing-container h2 {
   font-family: 'Montserrat', sans-serif;
   font-size: 1.8rem;
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -973,4 +1002,50 @@
 @keyframes luxurySoftIn {
   from { opacity: 0; transform: scale(1.05); }
   to { opacity: 1; transform: scale(1); }
+}
+/* ─── Floating Cart Button ─── */
+.floating-cart-button {
+  position: fixed;
+  bottom: 25px;
+  left: 25px;
+  z-index: 1001; /* Above almost everything */
+  background: white;
+  color: var(--secondary);
+  border: 1.5px solid var(--secondary);
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  text-decoration: none;
+}
+
+.floating-cart-button:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+  background: var(--secondary);
+  color: white;
+}
+
+.cart-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-count {
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+}
+
+@media (max-width: 768px) {
+  .floating-cart-button {
+    bottom: 20px;
+    left: 20px;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
+  }
 }

@@ -106,7 +106,8 @@ const ProductCard = ({ product, addToCart }: any) => {
   );
 };
 
-const CategoryScroll = ({ products, category, addToCart, selectedSizes, setSelectedSizes, wishlistActiveId, setWishlistActiveId }: any) => {
+const CategoryScroll = (props: any) => {
+  const { products, category, addToCart } = props;
   const scrollRef = useRef<HTMLDivElement>(null);
   const handleScroll = (dir: 'left' | 'right') => {
     if (scrollRef.current) {
@@ -125,10 +126,6 @@ const CategoryScroll = ({ products, category, addToCart, selectedSizes, setSelec
             key={`slider-${category}-${product.id}`} 
             product={product} 
             addToCart={addToCart}
-            selectedSizes={selectedSizes}
-            setSelectedSizes={setSelectedSizes}
-            wishlistActiveId={wishlistActiveId}
-            setWishlistActiveId={setWishlistActiveId}
           />
         ))}
       </div>
@@ -222,39 +219,6 @@ function HomeContent() {
 
   const [heroBg, setHeroBg] = useState(""); // Dynamic Hero Background
   const [heroLoaded, setHeroLoaded] = useState(false);
-  const [wishlistActiveId, setWishlistActiveId] = useState<number | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-
-  const initAudio = () => {
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-    return audioCtxRef.current;
-  };
-
-  const playBlip = () => {
-    try {
-      const ctx = initAudio();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(2000, ctx.currentTime);
-      
-      if (ctx.state === 'suspended') ctx.resume();
-      
-      gain.gain.setValueAtTime(0, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-      
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      
-      osc.start();
-      osc.stop(ctx.currentTime + 0.1);
-    } catch (e) {}
-  };
-
 
   useEffect(() => {
     fetch('/api/products')
@@ -308,7 +272,7 @@ function HomeContent() {
 
   // Sync cart to localStorage whenever it changes
   useEffect(() => {
-    if (loading) return; // Don't overwrite with empty before load
+    if (loading) return;
     localStorage.setItem('lyka_cart', JSON.stringify(cart));
     window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: cart.length } }));
   }, [cart, loading]);
@@ -460,10 +424,6 @@ function HomeContent() {
                   key={`slider-${product.id}`} 
                   product={product} 
                   addToCart={addToCart}
-                  selectedSizes={selectedSizes}
-                  setSelectedSizes={setSelectedSizes}
-                  wishlistActiveId={wishlistActiveId}
-                  setWishlistActiveId={setWishlistActiveId}
                 />
               ))}
             </div>
@@ -525,10 +485,6 @@ function HomeContent() {
                 key={`grid-${product.id}`} 
                 product={product} 
                 addToCart={addToCart}
-                selectedSizes={selectedSizes}
-                setSelectedSizes={setSelectedSizes}
-                wishlistActiveId={wishlistActiveId}
-                setWishlistActiveId={setWishlistActiveId}
               />
             ))}
           </div>
@@ -560,10 +516,6 @@ function HomeContent() {
                   products={catProducts} 
                   category={item.name} 
                   addToCart={addToCart}
-                  selectedSizes={selectedSizes}
-                  setSelectedSizes={setSelectedSizes}
-                  wishlistActiveId={wishlistActiveId}
-                  setWishlistActiveId={setWishlistActiveId}
                 />
                 
                 <div className="view-all-container">
@@ -607,6 +559,13 @@ function HomeContent() {
       {/* Cart / Billing */}
       <section className="billing-section container" id="cart" style={{ scrollMarginTop: '90px' }}>
         <div className="billing-container">
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem', color: 'var(--secondary)' }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="9" cy="21" r="1"></circle>
+              <circle cx="20" cy="21" r="1"></circle>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+          </div>
           <h2>Your Cart</h2>
           {cart.length === 0 ? (
             <p style={{ textAlign: 'center', color: '#999', padding: '2rem 0', fontSize: '0.9rem' }}>
