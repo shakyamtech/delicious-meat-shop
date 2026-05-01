@@ -255,21 +255,36 @@ function AdminHeader({ currentUser, weather, themeMode, toggleTheme, refreshWeat
       display: 'flex', 
       justifyContent: 'space-between', 
       alignItems: 'center', 
-      marginBottom: '3rem', 
+      marginBottom: '2rem', 
       paddingTop: '1rem',
-      width: '100%'
+      width: '100%',
+      flexWrap: 'wrap',
+      gap: '1.5rem'
     }}>
-      <div style={{ flex: 1 }}>
-        <h1 className="greeting-text" style={{ fontSize: '2.2rem', fontWeight: '800', marginBottom: '0.4rem', color: 'var(--admin-text)', margin: 0 }}>
+      <div style={{ flex: '1 1 300px' }}>
+        <h1 className="greeting-text" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.2rem)', fontWeight: '800', marginBottom: '0.2rem', color: 'var(--admin-text)', margin: 0 }}>
           {hour >= 18 || hour < 6 ? '🌙' : '☀️'} Good {hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening'}, {currentUser.displayName || currentUser.email.split('@')[0]} !
         </h1>
-        <p style={{ color: 'var(--admin-text-muted)', fontSize: '1rem', margin: '0.4rem 0 0 0' }}>Welcome back to your Admin Suite.</p>
+        <p style={{ color: 'var(--admin-text-muted)', fontSize: '0.9rem', margin: '0.2rem 0 0 0' }}>Welcome back to your Admin Suite.</p>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+      <div className="header-tools" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'nowrap' }}>
         {/* Notification Bell */}
-        <div style={{ position: 'relative', cursor: 'pointer' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        <div style={{ 
+          position: 'relative', 
+          cursor: 'pointer',
+          background: 'var(--admin-card)',
+          width: '42px',
+          height: '42px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: '12px',
+          border: '1px solid var(--admin-border)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+          flexShrink: 0
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
           {totalNotifications > 0 && (
             <span style={{ 
               position: 'absolute', top: '-5px', right: '-5px', 
@@ -277,25 +292,26 @@ function AdminHeader({ currentUser, weather, themeMode, toggleTheme, refreshWeat
               borderRadius: '50%', width: '18px', height: '18px', 
               fontSize: '0.65rem', display: 'flex', alignItems: 'center', 
               justifyContent: 'center', fontWeight: 'bold',
-              boxShadow: '0 2px 5px rgba(239, 68, 68, 0.3)'
+              boxShadow: '0 2px 5px rgba(239, 68, 68, 0.3)',
+              border: '2px solid var(--admin-card)'
             }}>
               {totalNotifications}
             </span>
           )}
         </div>
       
-      <div className="weather-card" style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '1.2rem', 
-        background: 'var(--admin-card)', 
-        padding: '0.8rem 1.5rem', 
-        borderRadius: '16px', 
-        border: '1px solid var(--admin-border)', 
-        boxShadow: '0 8px 25px rgba(0,0,0,0.08)',
-        flexShrink: 0,
-        position: 'relative'
-      }}>
+        <div className="weather-card" style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '0.8rem', 
+          background: 'var(--admin-card)', 
+          padding: '0.5rem 1rem', 
+          borderRadius: '12px', 
+          border: '1px solid var(--admin-border)', 
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+          flexShrink: 0,
+          position: 'relative'
+        }}>
         <button 
           onClick={refreshWeather}
           disabled={isRefreshing}
@@ -325,28 +341,24 @@ function AdminHeader({ currentUser, weather, themeMode, toggleTheme, refreshWeat
             <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
           </svg>
         </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', opacity: isRefreshing ? 0.5 : 1, transition: 'opacity 0.3s' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '45px', fontSize: '2.2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', opacity: isRefreshing ? 0.5 : 1, transition: 'opacity 0.3s' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', fontSize: '1.8rem' }}>
             {isRefreshing ? '📍' : renderWeatherIcon()}
           </div>
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: '800', lineHeight: 1, color: 'var(--admin-text)' }}>
+            <div style={{ fontSize: '1.1rem', fontWeight: '800', lineHeight: 1, color: 'var(--admin-text)' }}>
               {isRefreshing ? '--' : weather.temp}°C
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--admin-text-muted)', textTransform: 'capitalize', marginTop: '4px' }}>
-              {isRefreshing ? 'Detecting...' : `${weather.city}, ${weather.desc}`}
+            <div style={{ fontSize: '0.6rem', color: 'var(--admin-text-muted)', textTransform: 'capitalize', marginTop: '2px' }}>
+              {isRefreshing ? 'Detecting...' : `${weather.city}`}
             </div>
           </div>
         </div>
-        <div style={{ width: '1px', height: '25px', background: 'var(--admin-border)' }}></div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div style={{ width: '1px', height: '20px', background: 'var(--admin-border)' }} className="hide-on-mobile"></div>
+        <div style={{ display: 'flex', gap: '0.8rem' }} className="hide-on-mobile">
           <div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{weather.humidity}%</div>
-            <div style={{ fontSize: '0.6rem', color: 'var(--admin-text-muted)', textTransform: 'uppercase' }}>Humidity</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{weather.wind} <span style={{fontSize: '0.6rem'}}>km/h</span></div>
-            <div style={{ fontSize: '0.6rem', color: 'var(--admin-text-muted)', textTransform: 'uppercase' }}>Wind</div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>{weather.humidity}%</div>
+            <div style={{ fontSize: '0.55rem', color: 'var(--admin-text-muted)', textTransform: 'uppercase' }}>Humid</div>
           </div>
         </div>
         </div>

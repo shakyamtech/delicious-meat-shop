@@ -922,6 +922,41 @@
   }
 }
 
+/* ─── Footer ─── */
+.main-footer {
+  background: #0a0a0a;
+  color: #fff;
+  padding: 6rem 0 3rem;
+  font-size: 0.9rem;
+}
+
+.main-footer .container {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.2fr 1fr 1.5fr;
+  gap: 3rem;
+}
+
+@media (max-width: 1024px) {
+  .main-footer .container {
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-footer .container {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    text-align: center;
+  }
+
+  .footer-branding, .footer-logo-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
 @media (max-width: 768px) {
   .promo-section {
     grid-template-columns: 1fr; /* Stack vertically on mobile */
