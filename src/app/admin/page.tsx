@@ -349,6 +349,7 @@ function AdminHeader({ currentUser, weather, themeMode, toggleTheme, refreshWeat
             <div style={{ fontSize: '0.6rem', color: 'var(--admin-text-muted)', textTransform: 'uppercase' }}>Wind</div>
           </div>
         </div>
+        </div>
       </div>
     </header>
   );
