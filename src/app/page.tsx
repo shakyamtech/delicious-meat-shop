@@ -243,8 +243,8 @@ function HomeContent() {
 
     // Handle hash changes to automatically set the filter when clicking header links
     const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '');
-      if (['Clothes', 'Bags', 'Shoes'].includes(hash)) {
+      const hash = decodeURIComponent(window.location.hash.replace('#', ''));
+      if (['Meat', 'Frozen', 'Bakery', 'Dairy', 'Bulk'].includes(hash)) {
         setCategoryFilter(hash);
         document.getElementById('collection')?.scrollIntoView({ behavior: 'smooth' });
       }
@@ -539,7 +539,16 @@ function HomeContent() {
             <div className="promo-content">
               <h3>SALE</h3>
               <p>#WEEKEND BBQ SPECIAL</p>
-              <a href="/#Meat" className="promo-btn">VIEW</a>
+              <button 
+                onClick={() => {
+                  setCategoryFilter('Meat');
+                  document.getElementById('collection')?.scrollIntoView({ behavior: 'smooth' });
+                }} 
+                className="promo-btn"
+                style={{ background: 'white', color: 'black', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                VIEW
+              </button>
             </div>
           </RevealWrapper>
 
@@ -549,7 +558,16 @@ function HomeContent() {
             <div className="promo-content">
               <h3>NEW</h3>
               <p>#FROZEN FOOD SPECIALS</p>
-              <a href="/#Frozen" className="promo-btn">VIEW</a>
+              <button 
+                onClick={() => {
+                  setCategoryFilter('Frozen');
+                  document.getElementById('collection')?.scrollIntoView({ behavior: 'smooth' });
+                }} 
+                className="promo-btn"
+                style={{ background: 'white', color: 'black', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                VIEW
+              </button>
             </div>
           </RevealWrapper>
         </div>
