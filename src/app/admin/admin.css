@@ -549,98 +549,182 @@ section[style*="background: white"], div[style*="background: white"] {
   }
 }
 
+/* Hide responsive mobile drawer controls natively on desktop resolutions */
+.admin-mobile-bottombar {
+  display: none;
+}
+.admin-menu-overlay {
+  display: none;
+}
+.mobile-close-btn {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .admin-layout {
     flex-direction: column;
   }
   
-  .admin-sidebar {
+  /* Premium Pinned 5-Item Bottom Bar (Lyka Nepal Architecture) */
+  .admin-mobile-bottombar {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    height: 65px;
+    background: #0b0f19; /* High-contrast deep slate matching Lyka Nepal */
     position: fixed;
     bottom: 0;
-    top: auto;
+    left: 0;
     width: 100%;
-    height: 70px;
-    padding: 0;
-    flex-direction: row;
-    justify-content: flex-start;
-    align-items: stretch;
-    border-right: none;
-    border-top: 1px solid var(--admin-border);
-    background: var(--admin-sidebar);
     z-index: 1000;
-    overflow-x: auto;
-    scrollbar-width: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+    box-sizing: border-box;
+    padding: 0 0.5rem;
   }
-  .admin-sidebar::-webkit-scrollbar { display: none; }
+
+  .mobile-bottom-item {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .mobile-bottom-item.active {
+    color: #fff;
+    background: #1e1b4b; /* Lyka Nepal signature indigo highlight column */
+    border-top: 3px solid #6366f1;
+  }
+
+  .bottombar-badge {
+    position: absolute;
+    top: 6px;
+    right: 22%;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 50px;
+    line-height: 1.1;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+
+  /* Full Off-Canvas Backdrop Overlay */
+  .admin-menu-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(3px);
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+  }
+  .admin-menu-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Full-Height Sliding Left Drawer */
+  .admin-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: -280px !important;
+    bottom: auto !important;
+    width: 260px !important;
+    height: 100vh !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    background: var(--admin-sidebar) !important;
+    z-index: 3000 !important;
+    transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border-right: 1px solid var(--admin-border) !important;
+    border-top: none !important;
+    overflow-y: auto !important;
+    padding: 1.5rem 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .admin-sidebar.mobile-active {
+    left: 0 !important;
+  }
+
+  .sidebar-logo {
+    display: flex !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .mobile-close-btn {
+    display: block !important;
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 1.8rem;
+    cursor: pointer;
+    line-height: 1;
+  }
 
   .sidebar-nav {
-    flex-direction: row;
-    justify-content: space-around;
-    align-items: center;
-    width: 100%;
-    margin: 0;
-    padding: 0;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0 1rem !important;
+    gap: 0.4rem !important;
   }
 
   .sidebar-item {
-    flex: 1;
-    height: 100%;
-    border-radius: 0;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 0.2rem;
-    font-size: 0.65rem;
-    gap: 2px;
-    min-width: 0;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    padding: 0.8rem 1rem !important;
+    font-size: 0.95rem !important;
+    height: auto !important;
+    border-radius: 8px !important;
+    border: none !important;
   }
 
-  .sidebar-item.active {
-    background: rgba(79, 70, 229, 0.2);
-    border-top: 3px solid #4f46e5;
-    color: #fff !important;
-  }
-
-  .sidebar-item svg {
-    margin: 0 auto;
+  .sidebar-item span {
+    display: inline !important;
   }
 
   .desktop-spacer {
-    display: none !important;
-  }
-
-  .sidebar-item {
-    position: relative;
+    display: block !important;
+    flex: 1 !important;
   }
 
   .order-badge, .inventory-badge {
-    position: absolute !important;
-    top: 4px !important;
-    right: 4px !important;
-    transform: scale(0.7);
-    margin: 0 !important;
+    position: static !important;
+    transform: none !important;
   }
 
-  /* Appearance & Logout area on mobile */
-  .admin-sidebar > div:last-child {
-    display: flex !important;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0 1rem !important;
-    border-left: 1px solid rgba(255,255,255,0.1);
-    margin: 0 !important;
-    height: 100%;
+  .sidebar-footer-area {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
-  .admin-sidebar > div:last-child p,
-  .appearance-label,
-  .theme-label-hidden {
-    display: none !important; /* Hide all theme/appearance labels on mobile */
-  }
-
+  /* Offset Main Dashboard Body Container */
   .admin-main-content {
     margin-left: 0 !important;
-    margin-bottom: 80px !important;
+    margin-top: 0 !important;
+    margin-bottom: 75px !important;
     padding: 1.5rem 1rem !important;
     width: 100% !important;
     box-sizing: border-box !important;

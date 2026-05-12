@@ -235,133 +235,115 @@ function AnalyticsSection({ orders, products, expenses = [], lastSync, isSyncing
   );
 }
 
-function AdminHeader({ currentUser, weather, themeMode, toggleTheme, refreshWeather, isRefreshing, totalNotifications }: { currentUser: any, weather: any, themeMode: string, toggleTheme: () => void, refreshWeather: () => void, isRefreshing: boolean, totalNotifications: number }) {
+function AdminHeader({ currentUser, weather, themeMode, toggleTheme, refreshWeather, isRefreshing, totalNotifications, onNotificationClick }: { currentUser: any, weather: any, themeMode: string, toggleTheme: () => void, refreshWeather: () => void, isRefreshing: boolean, totalNotifications: number, onNotificationClick?: () => void }) {
   if (!weather || !currentUser) return null;
   const hour = new Date().getHours();
 
   const renderWeatherIcon = () => {
-    const desc = weather.desc.toLowerCase();
+    const desc = (weather.desc || "").toLowerCase();
     const isNight = hour >= 18 || hour < 6;
-    if (desc.includes('thunder')) return <div className="weather-icon-thunder">⚡</div>;
-    if (desc.includes('rain') || desc.includes('drizzle')) return <div className="weather-icon-rain">🌧️</div>;
-    if (desc.includes('cloud') || desc.includes('overcast') || desc.includes('fog')) return <div className="weather-icon-cloud">☁️</div>;
-    if (desc.includes('snow')) return <div className="weather-icon-cloud">❄️</div>;
+    if (desc.includes('thunder')) return '⚡';
+    if (desc.includes('rain') || desc.includes('drizzle')) return '🌧️';
+    if (desc.includes('cloud') || desc.includes('overcast') || desc.includes('fog')) return '☁️';
+    if (desc.includes('snow')) return '❄️';
     
-    if (isNight) return <div className="weather-icon-moon" style={{ fontSize: '2.2rem' }}>🌙</div>;
-    return <div className="weather-icon-sun">☀️</div>;
+    if (isNight) return '🌙';
+    return '☀️';
   };
 
   return (
-    <header className="admin-header-flex" style={{ 
-      display: 'flex', 
-      justifyContent: 'space-between', 
-      alignItems: 'center', 
-      marginBottom: '2rem', 
-      paddingTop: '1rem',
-      width: '100%',
-      flexWrap: 'wrap',
-      gap: '1.5rem'
-    }}>
-      <div style={{ flex: '1 1 300px' }}>
-        <h1 className="greeting-text" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.2rem)', fontWeight: '800', marginBottom: '0.2rem', color: 'var(--admin-text)', margin: 0 }}>
-          {hour >= 18 || hour < 6 ? '🌙' : '☀️'} Good {hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening'}, {currentUser.displayName || currentUser.email.split('@')[0]} !
+    <header className="admin-premium-header no-print" style={{ marginBottom: '2.5rem', position: 'relative' }}>
+
+
+      {/* Main Greeting Block */}
+      <div style={{ textAlign: 'center', padding: '0.5rem 0 1.5rem 0' }}>
+        <h1 style={{ fontSize: 'clamp(1.6rem, 5vw, 2.4rem)', fontWeight: '900', color: 'var(--admin-text)', margin: '0 0 0.4rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <span>{hour >= 18 || hour < 6 ? '🌙' : '☀️'}</span>
+          <span>Good {hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening'}, {currentUser.displayName || currentUser.email.split('@')[0]} !</span>
         </h1>
-        <p style={{ color: 'var(--admin-text-muted)', fontSize: '0.9rem', margin: '0.2rem 0 0 0' }}>Welcome back to your Admin Suite.</p>
+        <p style={{ color: 'var(--admin-text-muted)', fontSize: '0.95rem', margin: 0 }}>Welcome back to your Admin Suite.</p>
       </div>
 
-      <div className="header-tools" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'nowrap' }}>
-        {/* Notification Bell */}
-        <div style={{ 
-          position: 'relative', 
-          cursor: 'pointer',
+      {/* Lyka Nepal Standalone Premium Weather Widget Card */}
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <div className="premium-weather-widget" style={{
           background: 'var(--admin-card)',
-          width: '42px',
-          height: '42px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: '12px',
+          borderRadius: '20px',
           border: '1px solid var(--admin-border)',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-          flexShrink: 0
+          padding: '1.5rem',
+          width: '100%',
+          maxWidth: '340px',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+          position: 'relative',
+          textAlign: 'center',
+          transition: 'all 0.3s ease'
         }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-          {totalNotifications > 0 && (
-            <span style={{ 
-              position: 'absolute', top: '-5px', right: '-5px', 
-              background: '#ef4444', color: 'white', 
-              borderRadius: '50%', width: '18px', height: '18px', 
-              fontSize: '0.65rem', display: 'flex', alignItems: 'center', 
-              justifyContent: 'center', fontWeight: 'bold',
-              boxShadow: '0 2px 5px rgba(239, 68, 68, 0.3)',
-              border: '2px solid var(--admin-card)'
-            }}>
-              {totalNotifications}
-            </span>
-          )}
-        </div>
-      
-        <div className="weather-card" style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '0.8rem', 
-          background: 'var(--admin-card)', 
-          padding: '0.5rem 1rem', 
-          borderRadius: '12px', 
-          border: '1px solid var(--admin-border)', 
-          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-          flexShrink: 0,
-          position: 'relative'
-        }}>
-        <button 
-          onClick={refreshWeather}
-          disabled={isRefreshing}
-          style={{
-            position: 'absolute',
-            top: '-10px',
-            right: '-10px',
-            background: 'var(--admin-card)',
-            border: '1px solid var(--admin-border)',
-            borderRadius: '50%',
-            width: '24px',
-            height: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: isRefreshing ? 'wait' : 'pointer',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-            zIndex: 10,
-            opacity: isRefreshing ? 0.7 : 1
-          }}
-          title="Refresh Location"
-        >
-          <svg 
-            className={isRefreshing ? "weather-icon-thunder" : ""} 
-            width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+          {/* Subtle Refresh Trigger inside Widget Corner */}
+          <button 
+            onClick={refreshWeather}
+            disabled={isRefreshing}
+            style={{
+              position: 'absolute',
+              top: '12px',
+              right: '12px',
+              background: 'var(--admin-sidebar)',
+              border: '1px solid var(--admin-border)',
+              borderRadius: '50%',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: isRefreshing ? 'wait' : 'pointer',
+              color: 'var(--admin-text-muted)',
+              transition: 'all 0.2s ease',
+              opacity: isRefreshing ? 0.5 : 0.8
+            }}
+            title="Refresh Location Weather"
           >
-            <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-          </svg>
-        </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', opacity: isRefreshing ? 0.5 : 1, transition: 'opacity 0.3s' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', fontSize: '1.8rem' }}>
-            {isRefreshing ? '📍' : renderWeatherIcon()}
+            <svg 
+              className={isRefreshing ? "weather-icon-thunder" : ""} 
+              width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            >
+              <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+          </button>
+
+          {/* Large Dynamic Icon Display */}
+          <div style={{ fontSize: '3.2rem', lineHeight: 1.1, marginBottom: '0.5rem', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))' }}>
+            {isRefreshing ? '⏳' : renderWeatherIcon()}
           </div>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: '1.1rem', fontWeight: '800', lineHeight: 1, color: 'var(--admin-text)' }}>
-              {isRefreshing ? '--' : weather.temp}°C
+
+          {/* Huge Main Temp Metric */}
+          <div style={{ fontSize: '2.4rem', fontWeight: '900', color: 'var(--admin-text)', lineHeight: 1 }}>
+            {isRefreshing ? '--' : weather.temp}°C
+          </div>
+
+          {/* Subtitle location & condition label */}
+          <div style={{ fontSize: '0.85rem', color: 'var(--admin-text-muted)', marginTop: '0.3rem', fontWeight: '600' }}>
+            {isRefreshing ? 'Updating locale...' : `${weather.city}, ${weather.desc}`}
+          </div>
+
+          {/* Elegant Card Separator */}
+          <div style={{ 
+            height: '1px', 
+            background: 'var(--admin-border)', 
+            margin: '1.2rem 0 1rem 0',
+            opacity: 0.6 
+          }} />
+
+          {/* Dual Inline Stats Array */}
+          <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '1.05rem', fontWeight: '800', color: 'var(--admin-text)' }}>{weather.humidity}%</div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--admin-text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px', fontWeight: '700' }}>Humidity</div>
             </div>
-            <div style={{ fontSize: '0.6rem', color: 'var(--admin-text-muted)', textTransform: 'capitalize', marginTop: '2px' }}>
-              {isRefreshing ? 'Detecting...' : `${weather.city}`}
+            <div style={{ width: '1px', height: '24px', background: 'var(--admin-border)', opacity: 0.5 }} />
+            <div>
+              <div style={{ fontSize: '1.05rem', fontWeight: '800', color: 'var(--admin-text)' }}>{weather.wind || 4} km/h</div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--admin-text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px', fontWeight: '700' }}>Wind</div>
             </div>
           </div>
-        </div>
-        <div style={{ width: '1px', height: '20px', background: 'var(--admin-border)' }} className="hide-on-mobile"></div>
-        <div style={{ display: 'flex', gap: '0.8rem' }} className="hide-on-mobile">
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>{weather.humidity}%</div>
-            <div style={{ fontSize: '0.55rem', color: 'var(--admin-text-muted)', textTransform: 'uppercase' }}>Humid</div>
-          </div>
-        </div>
         </div>
       </div>
     </header>
@@ -453,6 +435,7 @@ export default function AdminPage() {
   const [purchaseNewImageFile, setPurchaseNewImageFile] = useState<File | null>(null);
   const [purchaseSizes, setPurchaseSizes] = useState<{ [key: string]: string }>({});
   const [isPurchaseProcessing, setIsPurchaseProcessing] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Custom Modal State
   const [modalConfig, setModalConfig] = useState<{
@@ -1569,7 +1552,7 @@ export default function AdminPage() {
           </form>
         ) : (
           <form className="admin-login-form" onSubmit={handleReset} style={{ background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)' }}>
-            <img src="/logo.png" alt="MEAT SHOP" style={{ width: '80px', margin: '0 auto', filter: effectiveTheme === 'dark' ? 'brightness(0) invert(1)' : 'none' }} />
+            <img src="/logo.png" alt="MEAT SHOP" style={{ width: '90px', margin: '0 auto', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))', borderRadius: '12px' }} />
             <h2 style={{ fontSize: "1.5rem", color: 'var(--admin-text)', fontWeight: '300' }}>Reset Password</h2>
             <p style={{ fontSize: "0.85rem", color: "var(--admin-text-muted)", marginBottom: "1rem", textAlign: 'center' }}>Secure key required for instant reset.</p>
             <input type="email" placeholder="Your Email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} required style={{ borderRadius: '12px' }} />
@@ -1695,17 +1678,78 @@ export default function AdminPage() {
   return (
     <div className={`admin-layout ${effectiveTheme}-theme`}>
       {/* Sidebar Navigation */}
-      <aside className="admin-sidebar no-print">
-        <div className="sidebar-logo" style={{ padding: '1.2rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem', height: 'auto', lineHeight: 1.2 }}>
+      {/* Pinned 5-Item Mobile Bottom Bar (Lyka Nepal Architecture) */}
+      <nav className="admin-mobile-bottombar no-print">
+        <button 
+          className={`mobile-bottom-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+          onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }}
+          title="Dashboard"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+        </button>
+        
+        <button 
+          className={`mobile-bottom-item ${activeTab === 'orders' ? 'active' : ''}`}
+          onClick={() => { setActiveTab('orders'); setIsMobileMenuOpen(false); }}
+          title="Orders"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+          {orders.filter(o => !o.status || o.status === 'Pending Verification').length > 0 && (
+            <span className="bottombar-badge">
+              {orders.filter(o => !o.status || o.status === 'Pending Verification').length}
+            </span>
+          )}
+        </button>
+
+        <button 
+          className={`mobile-bottom-item ${activeTab === 'pos' ? 'active' : ''}`}
+          onClick={() => { setActiveTab('pos'); setIsMobileMenuOpen(false); }}
+          title="POS Quick Sale"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M7 15h0M2 9.5h20"></path></svg>
+        </button>
+
+        <button 
+          className={`mobile-bottom-item ${activeTab === 'inventory' ? 'active' : ''}`}
+          onClick={() => { setActiveTab('inventory'); setIsMobileMenuOpen(false); }}
+          title="Inventory"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          {products.length > 0 && (
+            <span className="bottombar-badge" style={{ background: '#10b981' }}>
+              {products.length}
+            </span>
+          )}
+        </button>
+
+        <button 
+          className="mobile-bottom-item"
+          onClick={() => setIsMobileMenuOpen(true)}
+          title="More Menu"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+      </nav>
+
+      {/* Backdrop overlay for mobile slide menu */}
+      <div 
+        className={`admin-menu-overlay no-print ${isMobileMenuOpen ? 'active' : ''}`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
+
+      <aside className={`admin-sidebar no-print ${isMobileMenuOpen ? 'mobile-active' : ''}`}>
+        <div className="sidebar-logo" style={{ padding: '1.2rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem', height: 'auto', lineHeight: 1.2, position: 'relative' }}>
+          <button className="mobile-close-btn" onClick={() => setIsMobileMenuOpen(false)}>&times;</button>
           <img 
             src="/logo.png" 
             alt="Delicious Meat Shop Logo" 
             style={{ 
-              width: '56px', 
+              width: '64px', 
               height: 'auto', 
               objectFit: 'contain',
-              filter: effectiveTheme === 'dark' ? 'brightness(0) invert(1)' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.08))',
-              transition: 'all 0.3s ease'
+              filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.2))',
+              transition: 'all 0.3s ease',
+              borderRadius: '8px'
             }} 
             onError={(e) => {
               (e.target as HTMLElement).style.display = 'none';
@@ -1731,7 +1775,7 @@ export default function AdminPage() {
         <nav className="sidebar-nav">
           <button 
             className={`sidebar-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }}
           >
             <div className="sidebar-icon-wrapper">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
@@ -1740,7 +1784,7 @@ export default function AdminPage() {
           </button>
           <button 
             className={`sidebar-item ${activeTab === 'orders' ? 'active' : ''}`}
-            onClick={() => setActiveTab('orders')}
+            onClick={() => { setActiveTab('orders'); setIsMobileMenuOpen(false); }}
           >
             <div className="sidebar-icon-wrapper">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
@@ -1756,7 +1800,7 @@ export default function AdminPage() {
 
           <button 
             className={`sidebar-item ${activeTab === 'pos' ? 'active' : ''}`}
-            onClick={() => setActiveTab('pos')}
+            onClick={() => { setActiveTab('pos'); setIsMobileMenuOpen(false); }}
           >
             <div className="sidebar-icon-wrapper">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M7 15h0M2 9.5h20"></path></svg>
@@ -1765,7 +1809,7 @@ export default function AdminPage() {
           </button>
           <button 
             className={`sidebar-item ${activeTab === 'inventory' ? 'active' : ''}`}
-            onClick={() => setActiveTab('inventory')}
+            onClick={() => { setActiveTab('inventory'); setIsMobileMenuOpen(false); }}
           >
             <div className="sidebar-icon-wrapper">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
@@ -1780,7 +1824,7 @@ export default function AdminPage() {
           </button>
           <button 
             className={`sidebar-item ${activeTab === 'purchases' ? 'active' : ''}`}
-            onClick={() => setActiveTab('purchases')}
+            onClick={() => { setActiveTab('purchases'); setIsMobileMenuOpen(false); }}
           >
             <div className="sidebar-icon-wrapper">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
@@ -1789,7 +1833,7 @@ export default function AdminPage() {
           </button>
           <button 
             className={`sidebar-item ${activeTab === 'suppliers' ? 'active' : ''}`}
-            onClick={() => setActiveTab('suppliers')}
+            onClick={() => { setActiveTab('suppliers'); setIsMobileMenuOpen(false); }}
           >
             <div className="sidebar-icon-wrapper">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path><path d="M17 18h1"></path><path d="M12 18h1"></path><path d="M7 18h1"></path></svg>
@@ -1798,7 +1842,7 @@ export default function AdminPage() {
           </button>
           <button 
             className={`sidebar-item ${activeTab === 'customers' ? 'active' : ''}`}
-            onClick={() => setActiveTab('customers')}
+            onClick={() => { setActiveTab('customers'); setIsMobileMenuOpen(false); }}
           >
             <div className="sidebar-icon-wrapper">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
@@ -1807,7 +1851,7 @@ export default function AdminPage() {
           </button>
           <button 
             className={`sidebar-item ${activeTab === 'categories' ? 'active' : ''}`}
-            onClick={() => setActiveTab('categories')}
+            onClick={() => { setActiveTab('categories'); setIsMobileMenuOpen(false); }}
           >
             <div className="sidebar-icon-wrapper">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
@@ -1817,7 +1861,7 @@ export default function AdminPage() {
 
           <button 
             className="sidebar-item"
-            onClick={() => window.location.href = '/admin/account'}
+            onClick={() => { window.location.href = '/admin/account'; setIsMobileMenuOpen(false); }}
           >
             <div className="sidebar-icon-wrapper">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
@@ -1826,7 +1870,7 @@ export default function AdminPage() {
           </button>
           <button 
             className={`sidebar-item ${activeTab === 'settings' ? 'active' : ''}`}
-            onClick={() => setActiveTab('settings')}
+            onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }}
           >
             <div className="sidebar-icon-wrapper">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -1834,7 +1878,7 @@ export default function AdminPage() {
             <span>Settings</span>
           </button>
           
-          {/* Theme Toggle - Now part of the main group for even spacing on mobile */}
+          {/* Theme Toggle */}
           <button 
             className="sidebar-item theme-toggle-item" 
             onClick={toggleTheme}
@@ -1849,7 +1893,7 @@ export default function AdminPage() {
           </button>
         </nav>
 
-        {/* Footer Area - Only Logout for clean right-side placement */}
+        {/* Footer Area */}
         <div className="sidebar-footer-area" style={{ marginTop: 'auto', padding: '1rem' }}>
           <button className="logout-btn" onClick={() => setCurrentUser(null)} style={{ width: '100%', marginBottom: 0 }}>Logout</button>
         </div>
@@ -1864,6 +1908,7 @@ export default function AdminPage() {
           refreshWeather={updateLocation} 
           isRefreshing={isWeatherRefreshing}
           totalNotifications={orders.filter(o => !o.status || o.status === 'Pending Verification').length + wishlist.length}
+          onNotificationClick={() => setActiveTab('orders')}
         />
 
         <div className="tab-content">
