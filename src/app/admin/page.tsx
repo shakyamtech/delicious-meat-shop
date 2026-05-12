@@ -1696,7 +1696,38 @@ export default function AdminPage() {
     <div className={`admin-layout ${effectiveTheme}-theme`}>
       {/* Sidebar Navigation */}
       <aside className="admin-sidebar no-print">
-        <div className="sidebar-logo">MEAT SHOP ADMIN</div>
+        <div className="sidebar-logo" style={{ padding: '1.2rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem', height: 'auto', lineHeight: 1.2 }}>
+          <img 
+            src="/logo.png" 
+            alt="Delicious Meat Shop Logo" 
+            style={{ 
+              width: '56px', 
+              height: 'auto', 
+              objectFit: 'contain',
+              filter: effectiveTheme === 'dark' ? 'brightness(0) invert(1)' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.08))',
+              transition: 'all 0.3s ease'
+            }} 
+            onError={(e) => {
+              (e.target as HTMLElement).style.display = 'none';
+            }}
+          />
+          <div style={{ 
+            background: "transparent", 
+            color: "var(--admin-text)", 
+            border: "1px solid var(--admin-border)",
+            padding: "0.25rem 0.6rem", 
+            fontWeight: "600", 
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            fontSize: "0.65rem",
+            borderRadius: "4px",
+            textAlign: "center",
+            width: "100%",
+            boxSizing: "border-box"
+          }}>
+            Delicious Meat Shop
+          </div>
+        </div>
         <nav className="sidebar-nav">
           <button 
             className={`sidebar-item ${activeTab === 'dashboard' ? 'active' : ''}`}
