@@ -89,11 +89,12 @@ function AnalyticsSection({ orders, products, expenses = [], lastSync, isSyncing
       });
     });
 
-    // 2. Process Offline Sales (from Expenses with category 'Offline Sale')
-    const offlineSales = filteredExpenses.filter(e => 
-      e.type === 'INCOME' && 
-      e.category?.toString().toLowerCase().trim() === 'offline sale'
-    );
+    // 2. Process Offline Sales (from Expenses with category 'Offline Sale' or 'POS Store Sale')
+    const offlineSales = filteredExpenses.filter(e => {
+      if (e.type !== 'INCOME') return false;
+      const cat = e.category?.toString().toLowerCase().trim() || "";
+      return cat === 'offline sale' || cat.includes('pos store sale');
+    });
     offlineSales.forEach(sale => {
       // Check if it matches the filtered product if one is selected
       if (filterItemId !== "ALL") {
@@ -402,12 +403,6 @@ export default function AdminPage() {
   const [stock, setStock] = useState("10");
   const [description, setDescription] = useState("");
   const [sizeQuantities, setSizeQuantities] = useState<{ [key: string]: string }>({});
-  const [refillingProduct, setRefillingProduct] = useState<any | null>(null);
-  const [refillSizes, setRefillSizes] = useState<{ [key: string]: string }>({});
-  const [previousSizes, setPreviousSizes] = useState<{ [key: string]: string }>({});
-  const [refillCost, setRefillCost] = useState("");
-  const [refillPrice, setRefillPrice] = useState("");
-  const [originalStock, setOriginalStock] = useState(0);
   const [categories, setCategories] = useState<any[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -425,7 +420,11 @@ export default function AdminPage() {
   const [isSyncing, setIsSyncing] = useState(false);
 
   // POS (Point of Sale) State
+  const [posClientMode, setPosClientMode] = useState<"WALKIN" | "CUSTOMER">("WALKIN");
+  const [posPayMode, setPosPayMode] = useState<"CASH" | "BANK" | "CREDIT">("CASH");
   const [posProductId, setPosProductId] = useState("");
+  const [posProductSearch, setPosProductSearch] = useState("");
+  const [isPosSearchFocused, setIsPosSearchFocused] = useState(false);
   const [posSelectedSize, setPosSelectedSize] = useState("");
   const [posQty, setPosQty] = useState("1");
   const [posCart, setPosCart] = useState<any[]>([]);
@@ -437,6 +436,24 @@ export default function AdminPage() {
   const [posManualPrice, setPosManualPrice] = useState("");
   const [printingPOSData, setPrintingPOSData] = useState<any | null>(null);
   
+  // Supplier Purchases State
+  const [purchaseProductId, setPurchaseProductId] = useState("");
+  const [purchaseProductSearch, setPurchaseProductSearch] = useState("");
+  const [isPurchaseSearchFocused, setIsPurchaseSearchFocused] = useState(false);
+  const [purchaseSupplier, setPurchaseSupplier] = useState("");
+  const [purchasePayMode, setPurchasePayMode] = useState<"CASH" | "BANK" | "CREDIT">("CASH");
+  const [purchaseCost, setPurchaseCost] = useState("");
+  const [purchaseSalePrice, setPurchaseSalePrice] = useState("");
+  const [purchaseQty, setPurchaseQty] = useState("1");
+  const [purchaseDesc, setPurchaseDesc] = useState("");
+  const [purchaseIsVisibleOnWeb, setPurchaseIsVisibleOnWeb] = useState(true);
+  const [purchaseMode, setPurchaseMode] = useState<"EXISTING" | "NEW">("EXISTING");
+  const [purchaseNewName, setPurchaseNewName] = useState("");
+  const [purchaseNewCategory, setPurchaseNewCategory] = useState("Meat");
+  const [purchaseNewImageFile, setPurchaseNewImageFile] = useState<File | null>(null);
+  const [purchaseSizes, setPurchaseSizes] = useState<{ [key: string]: string }>({});
+  const [isPurchaseProcessing, setIsPurchaseProcessing] = useState(false);
+
   // Custom Modal State
   const [modalConfig, setModalConfig] = useState<{
     show: boolean;
@@ -584,8 +601,18 @@ export default function AdminPage() {
 
   const handlePOSCheckout = async (e?: React.FormEvent, shouldPrint: boolean = false) => {
     if (e) e.preventDefault();
-    if (posCart.length === 0 || !posAmount || !posCustomerName || !posCustomerPhone) {
-      alert("Please fill all required fields and add items to cart.");
+    const isNamed = posClientMode === "CUSTOMER";
+    const cName = isNamed ? posCustomerName.trim() : "Walk-in";
+    const cPhone = isNamed ? posCustomerPhone.trim() : "N/A";
+    const payMode = isNamed ? posPayMode : "CASH";
+
+    if (posCart.length === 0 || !posAmount) {
+      alert("Please add items to cart.");
+      return;
+    }
+
+    if (isNamed && (!cName || !cPhone)) {
+      alert("Please enter Customer Name and Phone Number for a Named Customer checkout.");
       return;
     }
 
@@ -618,7 +645,7 @@ export default function AdminPage() {
       const cartTotal = posCart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
       const discountVal = cartTotal - Number(posAmount);
       
-      let finalDesc = `Offline Sale: ${itemStrings.join(", ")} ${posCustomerName} | ${posCustomerPhone} ${pidStrings}`;
+      let finalDesc = `Customer: ${cName} | Phone: ${cPhone} | Mode: ${payMode} | Items: ${itemStrings.join(", ")} ${pidStrings}`;
       if (discountVal > 0) finalDesc += ` [DISC:${discountVal}]`;
 
       const ledgerRes = await fetch("/api/expenses", {
@@ -626,7 +653,7 @@ export default function AdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: "INCOME",
-          category: "Offline Sale",
+          category: payMode === "CREDIT" ? "POS Store Sale (Credit)" : "POS Store Sale",
           description: finalDesc,
           amount: Number(posAmount)
         })
@@ -636,12 +663,12 @@ export default function AdminPage() {
         if (shouldPrint) {
           const mockOrder = {
             id: `POS-${Date.now().toString().slice(-6)}`,
-            name: posCustomerName,
-            phone: posCustomerPhone,
-            address: "Offline Store Purchase",
+            name: cName,
+            phone: cPhone,
+            address: `Store POS (${payMode})`,
             email: "N/A",
             date: new Date().toISOString(),
-            status: "Completed",
+            status: payMode === "CREDIT" ? "Credit Sale" : "Completed",
             items: posCart,
             discount: discountVal,
             total: posAmount
@@ -653,13 +680,16 @@ export default function AdminPage() {
           }, 500);
         }
 
-        alert("✅ Sale completed successfully!");
+        alert(`✅ POS Quick Sale recorded successfully! (${payMode} mode)`);
         setPosCart([]);
-        setPosCustomerName("");
-        setPosCustomerPhone("");
+        if (isNamed) {
+          setPosCustomerName("");
+          setPosCustomerPhone("");
+        }
         setPosDiscount("");
         setPosAmount("");
         fetchProducts();
+        fetchExpenses();
       }
     } catch (err) {
       console.error(err);
@@ -1154,6 +1184,168 @@ export default function AdminPage() {
     fetchExpenses();
   };
 
+  const handleRecordPurchase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsPurchaseProcessing(true);
+
+    try {
+      let finalProductId = purchaseProductId;
+      let finalProductName = "";
+      
+      // Determine active category
+      const activeCategory = purchaseMode === "NEW" ? purchaseNewCategory : products.find(p => p.id?.toString() === purchaseProductId)?.category || "";
+      const isSized = ['Meat', 'Frozen', 'Dairy', 'Bulk'].includes(activeCategory);
+      
+      // Calculate total incoming stock
+      let qtyNum = 0;
+      if (isSized) {
+        qtyNum = Object.values(purchaseSizes).reduce((sum, qty) => sum + Number(qty || 0), 0);
+        if (qtyNum <= 0) {
+          alert("Please enter incoming stock quantities for at least one variant size.");
+          setIsPurchaseProcessing(false);
+          return;
+        }
+      } else {
+        qtyNum = Number(purchaseQty);
+        if (qtyNum <= 0) {
+          alert("Please enter a valid incoming batch quantity.");
+          setIsPurchaseProcessing(false);
+          return;
+        }
+      }
+
+      const costNum = Number(purchaseCost);
+      const saleNum = Number(purchaseSalePrice);
+      const totalCost = qtyNum * costNum;
+
+      if (purchaseMode === "NEW") {
+        if (!purchaseNewName || !purchaseSupplier || !purchaseCost || !purchaseSalePrice) {
+          alert("Please fill in all required supply fields.");
+          setIsPurchaseProcessing(false);
+          return;
+        }
+
+        const baseDesc = purchaseIsVisibleOnWeb ? "" : "[HIDDEN] Backroom Inventory";
+
+        const formData = new FormData();
+        formData.append('name', purchaseNewName);
+        formData.append('category', purchaseNewCategory);
+        formData.append('price', saleNum.toString());
+        formData.append('cost', costNum.toString());
+        formData.append('stock', qtyNum.toString());
+        formData.append('description', baseDesc);
+        
+        if (isSized) {
+          const sizesStr = Object.entries(purchaseSizes).filter(([_, q]) => Number(q) > 0).map(([s, q]) => `${s}:${q}`).join(', ');
+          formData.append('sizes', sizesStr);
+        }
+        
+        if (purchaseNewImageFile) formData.append('image', purchaseNewImageFile);
+
+        const res = await fetch('/api/products', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) throw new Error("Failed to register new product batch");
+        const createdProd = await res.json();
+        finalProductId = createdProd.id?.toString();
+        finalProductName = createdProd.name;
+
+      } else {
+        // EXISTING item mode
+        if (!purchaseProductId || !purchaseSupplier || !purchaseCost || !purchaseSalePrice) {
+          alert("Please fill in all required supply fields.");
+          setIsPurchaseProcessing(false);
+          return;
+        }
+
+        const prod = products.find(p => p.id?.toString() === purchaseProductId.toString());
+        if (!prod) {
+          alert("Selected product not found.");
+          setIsPurchaseProcessing(false);
+          return;
+        }
+
+        finalProductId = prod.id;
+        finalProductName = prod.name;
+        const newStock = Number(prod.stock || 0) + qtyNum;
+
+        let updatedSizesStr = prod.sizes || "";
+        if (isSized) {
+          // Parse existing sizes, add new ones
+          const oldSizes: { [k: string]: number } = {};
+          if (prod.sizes) {
+            prod.sizes.split(',').forEach((s: string) => {
+              const [name, q] = s.trim().split(':');
+              if (name) oldSizes[name] = Number(q || 0);
+            });
+          }
+          Object.entries(purchaseSizes).forEach(([s, q]) => {
+            const added = Number(q || 0);
+            if (added > 0) oldSizes[s] = (oldSizes[s] || 0) + added;
+          });
+          updatedSizesStr = Object.entries(oldSizes).map(([s, q]) => `${s}:${q}`).join(', ');
+        }
+
+        let updatedDesc = prod.description || "";
+        if (!purchaseIsVisibleOnWeb && !updatedDesc.includes("[HIDDEN]")) {
+          updatedDesc += " [HIDDEN]";
+        } else if (purchaseIsVisibleOnWeb && updatedDesc.includes("[HIDDEN]")) {
+          updatedDesc = updatedDesc.replace(/\[HIDDEN\]/g, "").trim();
+        }
+
+        const patchRes = await fetch('/api/products', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: prod.id,
+            stock: newStock,
+            sizes: isSized ? updatedSizesStr : undefined,
+            cost: costNum,
+            price: saleNum,
+            description: updatedDesc
+          })
+        });
+
+        if (!patchRes.ok) throw new Error("Failed to update existing inventory stock & pricing");
+      }
+
+      // Log Purchase Entry into Expenses ledger
+      const expRes = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: totalCost,
+          type: "EXPENSE",
+          category: purchasePayMode === "CREDIT" ? "Supplier Purchase (Credit)" : "Supplier Purchase",
+          description: `📦 Purchase from ${purchaseSupplier} | ${finalProductName} (x${qtyNum}) @ NPR ${costNum}/unit [Mode: ${purchasePayMode}] [PID:${finalProductId}]`,
+          date: new Date().toISOString()
+        })
+      });
+
+      if (!expRes.ok) throw new Error("Failed to record purchase entry in ledger");
+
+      // Success
+      alert(`✅ Successfully recorded unified batch for ${finalProductName}! Inventory units, sizes, base cost, and retail pricing have been synced natively.`);
+      setPurchaseProductId("");
+      setPurchaseSupplier("");
+      setPurchaseCost("");
+      setPurchaseSalePrice("");
+      setPurchaseQty("1");
+      setPurchaseSizes({});
+      setPurchaseNewName("");
+      setPurchaseNewImageFile(null);
+      fetchProducts();
+      fetchExpenses();
+    } catch (err: any) {
+      alert(err.message);
+      setIsPurchaseProcessing(false);
+    } finally {
+      setIsPurchaseProcessing(false);
+    }
+  };
+
   const handleDelete = async (id: number) => {
     const product = products.find(p => p.id === id);
     setModalConfig({
@@ -1178,95 +1370,6 @@ export default function AdminPage() {
         }
       }
     });
-  };
-
-  const handleUpdateStock = (product: any) => {
-    setRefillingProduct(product);
-    setOriginalStock(Number(product.stock) || 0);
-    setRefillCost(product.cost?.toString() || "");
-    setRefillPrice(product.price?.toString() || "");
-    const sizes: { [key: string]: string } = {};
-    if (product.sizes) {
-      product.sizes.split(',').forEach((s: string) => {
-        const [name, qty] = s.trim().split(':');
-        if (name) sizes[name] = qty || "0";
-      });
-    }
-    setRefillSizes(sizes);
-    setPreviousSizes({ ...sizes });
-  };
-
-  const handleSaveRefill = async () => {
-    if (!refillingProduct) return;
-    
-    let finalSizes = "";
-    let finalStock = refillingProduct.stock;
-
-    if (['Clothes', 'Shoes'].includes(refillingProduct.category)) {
-      finalSizes = Object.entries(refillSizes).map(([sz, qty]) => `${sz}:${qty}`).join(', ');
-      finalStock = Object.values(refillSizes).reduce((sum, qty) => sum + Number(qty || 0), 0);
-    } else {
-      finalStock = Number(refillingProduct.stock);
-    }
-
-    if (Math.abs(Number(finalStock) - Number(refillingProduct.stock)) > 100) {
-      setModalConfig({
-        show: true,
-        title: "Large Stock Change",
-        message: `⚠️ Large stock change detected: from ${refillingProduct.stock} to ${finalStock}. Is this correct?`,
-        confirmLabel: "Yes, Update Stock",
-        type: 'danger',
-        action: () => {
-          setModalConfig(prev => ({ ...prev, show: false }));
-          performRefill(finalSizes, finalStock);
-        }
-      });
-      return;
-    }
-
-    performRefill(finalSizes, finalStock);
-  };
-
-  const performRefill = async (finalSizes: string, finalStock: number) => {
-    const res = await fetch(`/api/products`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        id: refillingProduct.id, 
-        stock: finalStock,
-        sizes: finalSizes,
-        cost: Number(refillCost),
-        price: Number(refillPrice)
-      })
-    });
-
-    if (res.ok) {
-      // Automatically settle the amount in accounting if stock increased
-      const stockAdded = finalStock - originalStock;
-      if (stockAdded > 0) {
-        const costToUse = Number(refillCost) || Number(refillingProduct.cost) || 0;
-        const totalRefillCost = stockAdded * costToUse;
-        if (totalRefillCost > 0) {
-          await fetch("/api/expenses", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              amount: Number(totalRefillCost),
-              type: "EXPENSE",
-              category: "Inventory Restock",
-              description: `Restock: ${refillingProduct.name} (+${stockAdded} units)`,
-              date: new Date().toISOString()
-            })
-          }).catch(err => console.error("Settlement failed", err));
-        }
-      }
-
-      setRefillingProduct(null);
-      fetchProducts();
-      fetchExpenses();
-    } else {
-      alert("Failed to update stock.");
-    }
   };
 
   const handleDeleteSubUser = async (id: string) => {
@@ -1529,9 +1632,10 @@ export default function AdminPage() {
     });
 
     // 2. Process Offline Sales from Expenses
-    const offlineSales = expenses.filter(e => 
-      e.category?.toString().toLowerCase().trim() === 'offline sale'
-    );
+    const offlineSales = expenses.filter(e => {
+      const cat = e.category?.toString().toLowerCase().trim() || "";
+      return cat === 'offline sale' || cat.includes('pos store sale');
+    });
     offlineSales.forEach(sale => {
       const saleDate = new NepaliDate(new Date(sale.date));
       const saleDateJS = new Date(sale.date);
@@ -1644,6 +1748,33 @@ export default function AdminPage() {
             )}
           </button>
           <button 
+            className={`sidebar-item ${activeTab === 'purchases' ? 'active' : ''}`}
+            onClick={() => setActiveTab('purchases')}
+          >
+            <div className="sidebar-icon-wrapper">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+            </div>
+            <span>Purchases</span>
+          </button>
+          <button 
+            className={`sidebar-item ${activeTab === 'suppliers' ? 'active' : ''}`}
+            onClick={() => setActiveTab('suppliers')}
+          >
+            <div className="sidebar-icon-wrapper">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path><path d="M17 18h1"></path><path d="M12 18h1"></path><path d="M7 18h1"></path></svg>
+            </div>
+            <span>Suppliers</span>
+          </button>
+          <button 
+            className={`sidebar-item ${activeTab === 'customers' ? 'active' : ''}`}
+            onClick={() => setActiveTab('customers')}
+          >
+            <div className="sidebar-icon-wrapper">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <span>Customers</span>
+          </button>
+          <button 
             className={`sidebar-item ${activeTab === 'categories' ? 'active' : ''}`}
             onClick={() => setActiveTab('categories')}
           >
@@ -1652,21 +1783,7 @@ export default function AdminPage() {
             </div>
             <span>Categories</span>
           </button>
-          <button 
-            className={`sidebar-item ${activeTab === 'wishlist' ? 'active' : ''}`}
-            onClick={() => setActiveTab('wishlist')}
-          >
-            <div className="sidebar-icon-wrapper">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-            </div>
-            <span>Wishlist</span>
-            <div className="desktop-spacer" />
-            {wishlist.length > 0 && (
-              <span className="order-badge" style={{ background: '#f43f5e' }}>
-                {wishlist.length}
-              </span>
-            )}
-          </button>
+
           <button 
             className="sidebar-item"
             onClick={() => window.location.href = '/admin/account'}
@@ -1744,88 +1861,212 @@ export default function AdminPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                     <div className="pos-input-group" style={{ background: 'rgba(0,0,0,0.02)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--admin-border)' }}>
                       <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1rem', color: 'var(--admin-text-muted)' }}>Product Selection</label>
-                        <select 
-                          value={posProductId} 
-                          onChange={(e) => {
-                            setPosProductId(e.target.value);
-                            setPosSelectedSize("");
-                          }} 
-                          style={{ width: '100%', padding: '1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '12px', fontSize: '1rem', marginBottom: '1rem' }}
-                        >
-                          <option value="">Select Product...</option>
-                          {products.map(p => <option key={p.id} value={p.id}>{p.name} (Stock: {p.stock})</option>)}
-                        </select>
-
-                        {posProductId && products.find(p => p.id.toString() === posProductId)?.sizes && (
-                          <select 
-                            value={posSelectedSize} 
-                            onChange={(e) => setPosSelectedSize(e.target.value)} 
-                            style={{ width: '100%', padding: '1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '12px', fontSize: '1rem', marginBottom: '1rem' }}
-                          >
-                            <option value="">Select Variant...</option>
-                            {products.find(p => p.id.toString() === posProductId).sizes.split(',').map((sStr: string) => {
-                              const szName = sStr.split(':')[0].trim();
-                              return <option key={szName} value={szName}>{szName}</option>;
-                            })}
-                          </select>
-                        )}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 120px', gap: '1rem', alignItems: 'center' }}>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type="text"
+                            placeholder={posProductId ? `✅ ${products.find(p => p.id.toString() === posProductId)?.name}` : "🔍 Search & select product..."}
+                            value={posProductSearch}
+                            onFocus={() => setIsPosSearchFocused(true)}
+                            onBlur={() => setTimeout(() => setIsPosSearchFocused(false), 200)}
+                            onChange={(e) => {
+                              setPosProductSearch(e.target.value);
+                              setIsPosSearchFocused(true);
+                              if (posProductId) setPosProductId("");
+                            }}
+                            style={{ width: '100%', padding: '1rem', background: posProductId ? 'rgba(16, 185, 129, 0.05)' : 'var(--admin-card)', border: `1px solid ${posProductId ? '#10b981' : 'var(--admin-border)'}`, color: 'var(--admin-text)', borderRadius: '12px', fontSize: '0.95rem', fontWeight: posProductId ? 'bold' : 'normal', boxSizing: 'border-box' }}
+                          />
+                          {isPosSearchFocused && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '100%',
+                              left: 0,
+                              right: 0,
+                              background: 'var(--admin-card)',
+                              border: '1px solid var(--admin-border)',
+                              borderRadius: '12px',
+                              marginTop: '6px',
+                              maxHeight: '380px',
+                              overflowY: 'auto',
+                              zIndex: 100,
+                              boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                            }}>
+                              {products.filter(p => p.name.toLowerCase().includes(posProductSearch.toLowerCase())).map(p => (
+                                <div
+                                  key={p.id}
+                                  onClick={() => {
+                                    setPosProductId(p.id.toString());
+                                    setPosProductSearch(p.name);
+                                    setPosSelectedSize("");
+                                    setIsPosSearchFocused(false);
+                                  }}
+                                  style={{
+                                    padding: '0.8rem 1rem',
+                                    borderBottom: '1px solid rgba(0,0,0,0.04)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    background: posProductId === p.id.toString() ? 'rgba(99, 102, 241, 0.1)' : 'transparent'
+                                  }}
+                                >
+                                  <span style={{ fontWeight: posProductId === p.id.toString() ? 'bold' : 'normal', fontSize: '0.9rem' }}>{p.name}</span>
+                                  <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '20px', background: Number(p.stock) > 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: Number(p.stock) > 0 ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>
+                                    Stock: {p.stock}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
 
                         <input 
                           type="number" 
                           step="any"
+                          min="1"
                           placeholder="Qty"
                           value={posQty} 
                           onChange={(e) => setPosQty(e.target.value)} 
-                          style={{ width: '100%', padding: '1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '12px', fontSize: '1rem', textAlign: 'center', marginBottom: '1rem' }}
+                          style={{ width: '100%', padding: '1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '12px', fontSize: '0.95rem', textAlign: 'center', boxSizing: 'border-box' }}
                         />
-                        <input 
-                          type="number" 
-                          placeholder="Price override (Optional)"
-                          value={posManualPrice} 
-                          onChange={(e) => setPosManualPrice(e.target.value)} 
-                          style={{ width: '100%', padding: '1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '12px', fontSize: '0.85rem' }}
-                        />
-                      </div>
-                      <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
+
                         <button 
                           onClick={() => {
                             const p = products.find(prod => prod.id.toString() === posProductId);
-                            if (!p) return alert("Please select a product");
+                            if (!p) return alert("Please search and select a product first.");
                             const finalPrice = posManualPrice ? Number(posManualPrice) : getAdjustedPrice(Number(p.price), posSelectedSize);
                             setPosCart([...posCart, { id: p.id, name: p.name, quantity: Number(posQty), price: finalPrice, selectedSize: posSelectedSize }]);
                             setPosProductId("");
+                            setPosProductSearch("");
                             setPosSelectedSize("");
                             setPosQty("1");
                             setPosManualPrice("");
                           }}
-                          style={{ flex: 1, padding: '1rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)' }}
+                          style={{ width: '100%', padding: '1rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)' }}
                         >
                           Add Item
                         </button>
                       </div>
+
+                      {posProductId && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                          {products.find(p => p.id.toString() === posProductId)?.sizes ? (
+                            <select 
+                              value={posSelectedSize} 
+                              onChange={(e) => setPosSelectedSize(e.target.value)} 
+                              style={{ width: '100%', padding: '1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '12px', fontSize: '0.95rem', boxSizing: 'border-box' }}
+                            >
+                              <option value="">Select Variant Size...</option>
+                              {products.find(p => p.id.toString() === posProductId).sizes.split(',').map((sStr: string) => {
+                                const szName = sStr.split(':')[0].trim();
+                                return <option key={szName} value={szName}>{szName}</option>;
+                              })}
+                            </select>
+                          ) : <div />}
+                          <input 
+                            type="number" 
+                            placeholder="Price override (Optional)"
+                            value={posManualPrice} 
+                            onChange={(e) => setPosManualPrice(e.target.value)} 
+                            style={{ width: '100%', padding: '1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '12px', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                      )}
                     </div>
 
                     <div className="pos-input-group" style={{ background: 'rgba(0,0,0,0.02)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--admin-border)' }}>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1rem', color: 'var(--admin-text-muted)' }}>Customer Details</label>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <input 
-                          type="text" 
-                          placeholder="Customer Name" 
-                          value={posCustomerName} 
-                          onChange={e => setPosCustomerName(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter' && posCart.length > 0) handlePOSCheckout(undefined, true); }}
-                          style={{ padding: '1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '12px' }}
-                        />
-                        <input 
-                          type="text" 
-                          placeholder="Phone Number" 
-                          value={posCustomerPhone} 
-                          onChange={e => setPosCustomerPhone(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter' && posCart.length > 0) handlePOSCheckout(undefined, true); }}
-                          style={{ padding: '1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '12px' }}
-                        />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--admin-text-muted)' }}>Checkout Type</label>
+                        <div style={{ display: 'flex', background: 'var(--admin-card)', padding: '3px', borderRadius: '8px', border: '1px solid var(--admin-border)' }}>
+                          <button
+                            type="button"
+                            onClick={() => setPosClientMode("WALKIN")}
+                            style={{
+                              padding: '0.3rem 0.8rem',
+                              borderRadius: '6px',
+                              border: 'none',
+                              fontSize: '0.75rem',
+                              fontWeight: 'bold',
+                              background: posClientMode === "WALKIN" ? '#10b981' : 'transparent',
+                              color: posClientMode === "WALKIN" ? 'white' : 'var(--admin-text-muted)',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            🚶 Walk-in (Cash)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPosClientMode("CUSTOMER")}
+                            style={{
+                              padding: '0.3rem 0.8rem',
+                              borderRadius: '6px',
+                              border: 'none',
+                              fontSize: '0.75rem',
+                              fontWeight: 'bold',
+                              background: posClientMode === "CUSTOMER" ? '#6366f1' : 'transparent',
+                              color: posClientMode === "CUSTOMER" ? 'white' : 'var(--admin-text-muted)',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            👤 Named Customer
+                          </button>
+                        </div>
                       </div>
+
+                      {posClientMode === "WALKIN" ? (
+                        <div style={{ padding: '0.5rem 0', color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>
+                          ⚡ Quick cash transaction. Items handed over immediately at the counter. No contact registry required.
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <input 
+                              type="text" 
+                              placeholder="Customer Name *" 
+                              value={posCustomerName} 
+                              onChange={e => setPosCustomerName(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter' && posCart.length > 0) handlePOSCheckout(undefined, true); }}
+                              style={{ padding: '0.8rem 1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '10px', fontSize: '0.9rem', boxSizing: 'border-box', width: '100%' }}
+                            />
+                            <input 
+                              type="text" 
+                              placeholder="Phone Number *" 
+                              value={posCustomerPhone} 
+                              onChange={e => setPosCustomerPhone(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter' && posCart.length > 0) handlePOSCheckout(undefined, true); }}
+                              style={{ padding: '0.8rem 1rem', background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', borderRadius: '10px', fontSize: '0.9rem', boxSizing: 'border-box', width: '100%' }}
+                            />
+                          </div>
+                          
+                          <div>
+                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--admin-text-muted)' }}>Payment Settlement Option</label>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              {(["CASH", "BANK", "CREDIT"] as const).map((mode) => (
+                                <button
+                                  type="button"
+                                  key={mode}
+                                  onClick={() => setPosPayMode(mode)}
+                                  style={{
+                                    flex: 1,
+                                    padding: '0.6rem 0.4rem',
+                                    borderRadius: '8px',
+                                    border: posPayMode === mode ? 'none' : '1px solid var(--admin-border)',
+                                    background: posPayMode === mode ? '#10b981' : 'var(--admin-card)',
+                                    color: posPayMode === mode ? 'white' : 'var(--admin-text)',
+                                    fontWeight: 'bold',
+                                    fontSize: '0.75rem',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {mode === 'CASH' ? '💵 Cash' : mode === 'BANK' ? '🏦 Bank / QR' : '📒 Khata Credit'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
+                  </div>
                 </section>
 
                 <section className="theme-card pos-summary" style={{ padding: '2.5rem', borderRadius: '24px', display: 'flex', flexDirection: 'column', background: 'var(--admin-card)', boxShadow: '0 20px 50px rgba(0,0,0,0.1)' }}>
@@ -1967,7 +2208,19 @@ export default function AdminPage() {
                           <p style={{ fontWeight: "bold", margin: 0, fontSize: '0.9rem' }}>{p.name}</p>
                           <p style={{ fontSize: "0.8rem", color: "#ef4444", fontWeight: 'bold', margin: 0 }}>Only {p.stock} left!</p>
                         </div>
-                        <button onClick={() => { setActiveTab('inventory'); handleUpdateStock(p); }} style={{ fontSize: '0.7rem', padding: '0.4rem 0.8rem', background: 'var(--admin-sidebar)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Refill</button>
+                        <button 
+                          onClick={() => { 
+                            setActiveTab('purchases');
+                            setPurchaseMode("EXISTING");
+                            setPurchaseProductId(p.id?.toString() || "");
+                            setPurchaseProductSearch(p.name);
+                            setPurchaseCost(p.cost?.toString() || "0");
+                            setPurchaseSalePrice(p.price?.toString() || "0");
+                          }} 
+                          style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.4rem 0.8rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)' }}
+                        >
+                          Restock Suite ➔
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -2074,199 +2327,964 @@ export default function AdminPage() {
           )}
 
           {activeTab === 'inventory' && (
-            <div id="inventory-section" className="admin-grid" style={{ scrollMarginTop: '100px' }}>
-              <section className="add-product-section">
-                <h2>Add New Product</h2>
-                <form className="add-product-form" onSubmit={handleAddProduct}>
-                  <input type="text" placeholder="Product Name" value={name} onChange={(e) => setName(e.target.value)} required />
-                  <select value={category} onChange={(e) => {
-                    const cat = e.target.value;
-                    setCategory(cat);
-                    setSizeQuantities({});
-                  }} required>
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.name}>{cat.name}</option>
-                    ))}
-                  </select>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <input type="number" placeholder="Sale Price (NPR)" value={price} onChange={(e) => setPrice(e.target.value)} required style={{ flex: 1 }} />
-                    <input type="number" placeholder="Your Cost (NPR)" value={cost} onChange={(e) => setCost(e.target.value)} required style={{ flex: 1 }} />
-                  </div>
-                  <input type="number" placeholder="Total Stock (Limit)" value={stock} onChange={(e) => setStock(e.target.value)} required />
-                  <textarea placeholder="Product Description..." value={description} onChange={(e) => setDescription(e.target.value)} style={{ padding: "0.8rem", border: "1px solid var(--border)", borderRadius: "4px", minHeight: "80px" }}></textarea>
-                  {category === 'Meat' && (
-                    <div className="theme-card" style={{ padding: "0.8rem", borderRadius: "4px" }}>
-                      <p style={{ fontSize: "0.8rem", fontWeight: "bold", marginBottom: "0.2rem" }}>Portion/Weight Variants (Stock per variant):</p>
-                      <p style={{ fontSize: "0.65rem", color: "#6366f1", marginBottom: "0.5rem", fontWeight: "600" }}>ℹ️ Note: System will auto-calculate price (e.g., 500gm = 50% price, 250gm = 25%)</p>
-                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                        {['1kg', '1.5kg', '2kg', '500gm', '250gm', 'Whole', 'Half'].map(s => (
-                          <div key={s} style={{ display: "flex", flexDirection: "column", gap: "0.2rem", width: "60px" }}>
-                            <label style={{ fontSize: "0.75rem", fontWeight: "600", textAlign: "center" }}>{s}</label>
-                            <input
-                              type="number"
-                              min="0"
-                              placeholder="0"
-                              value={sizeQuantities[s] || ""}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === '') {
-                                   setSizeQuantities(prev => ({ ...prev, [s]: val }));
-                                   return;
-                                }
-                                const newVal = Number(val);
-                                const currentTotal = Object.entries(sizeQuantities).reduce((sum, [k, v]) => k === s ? sum : sum + Number(v || 0), 0);
-                                const maxAllowed = Number(stock || 0);
-                                
-                                if (currentTotal + newVal <= maxAllowed) {
-                                  setSizeQuantities(prev => ({ ...prev, [s]: val }));
-                                } else {
-                                  const remaining = Math.max(0, maxAllowed - currentTotal);
-                                  setSizeQuantities(prev => ({ ...prev, [s]: remaining.toString() }));
-                                }
-                              }}
-                              style={{ padding: "0.4rem", textAlign: "center" }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {category === 'Frozen' && (
-                    <div className="theme-card" style={{ padding: "0.8rem", borderRadius: "4px" }}>
-                      <p style={{ fontSize: "0.8rem", fontWeight: "bold", marginBottom: "0.5rem" }}>Packaging Units (Stock per type):</p>
-                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                        {['Packet', 'Box', 'Bulk Pack'].map(s => (
-                          <div key={s} style={{ display: "flex", flexDirection: "column", gap: "0.2rem", width: "70px" }}>
-                            <label style={{ fontSize: "0.75rem", fontWeight: "600", textAlign: "center" }}>{s}</label>
-                            <input
-                              type="number"
-                              min="0"
-                              placeholder="0"
-                              value={sizeQuantities[s] || ""}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === '') {
-                                   setSizeQuantities(prev => ({ ...prev, [s]: val }));
-                                   return;
-                                }
-                                const newVal = Number(val);
-                                const currentTotal = Object.entries(sizeQuantities).reduce((sum, [k, v]) => k === s ? sum : sum + Number(v || 0), 0);
-                                const maxAllowed = Number(stock || 0);
-                                
-                                if (currentTotal + newVal <= maxAllowed) {
-                                  setSizeQuantities(prev => ({ ...prev, [s]: val }));
-                                } else {
-                                  const remaining = Math.max(0, maxAllowed - currentTotal);
-                                  setSizeQuantities(prev => ({ ...prev, [s]: remaining.toString() }));
-                                }
-                              }}
-                              style={{ padding: "0.4rem", textAlign: "center" }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {category === 'Dairy' && (
-                    <div className="theme-card" style={{ padding: "0.8rem", borderRadius: "4px" }}>
-                      <p style={{ fontSize: "0.8rem", fontWeight: "bold", marginBottom: "0.2rem" }}>Dairy Units (Stock per variant):</p>
-                      <p style={{ fontSize: "0.65rem", color: "#6366f1", marginBottom: "0.5rem", fontWeight: "600" }}>ℹ️ Note: System will auto-calculate price (e.g., 500ml/gm = 50% price)</p>
-                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                        {['2 Litre', '1 Litre', '500ml', '1kg', '500gm'].map(s => (
-                          <div key={s} style={{ display: "flex", flexDirection: "column", gap: "0.2rem", width: "65px" }}>
-                            <label style={{ fontSize: "0.75rem", fontWeight: "600", textAlign: "center" }}>{s}</label>
-                            <input
-                              type="number"
-                              min="0"
-                              placeholder="0"
-                              value={sizeQuantities[s] || ""}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === '') {
-                                   setSizeQuantities(prev => ({ ...prev, [s]: val }));
-                                   return;
-                                }
-                                const newVal = Number(val);
-                                const currentTotal = Object.entries(sizeQuantities).reduce((sum, [k, v]) => k === s ? sum : sum + Number(v || 0), 0);
-                                const maxAllowed = Number(stock || 0);
-                                
-                                if (currentTotal + newVal <= maxAllowed) {
-                                  setSizeQuantities(prev => ({ ...prev, [s]: val }));
-                                } else {
-                                  const remaining = Math.max(0, maxAllowed - currentTotal);
-                                  setSizeQuantities(prev => ({ ...prev, [s]: remaining.toString() }));
-                                }
-                              }}
-                              style={{ padding: "0.4rem", textAlign: "center" }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {category === 'Bulk' && (
-                    <div className="theme-card" style={{ padding: "0.8rem", borderRadius: "4px" }}>
-                      <p style={{ fontSize: "0.8rem", fontWeight: "bold", marginBottom: "0.5rem" }}>Bulk/Wholesale Units:</p>
-                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                        {['Tray', 'Box', '10kg', '20kg'].map(s => (
-                          <div key={s} style={{ display: "flex", flexDirection: "column", gap: "0.2rem", width: "50px" }}>
-                            <label style={{ fontSize: "0.75rem", fontWeight: "600", textAlign: "center" }}>{s}</label>
-                            <input
-                              type="number"
-                              min="0"
-                              placeholder="0"
-                              value={sizeQuantities[s] || ""}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === '') {
-                                   setSizeQuantities(prev => ({ ...prev, [s]: val }));
-                                   return;
-                                }
-                                const newVal = Number(val);
-                                const currentTotal = Object.entries(sizeQuantities).reduce((sum, [k, v]) => k === s ? sum : sum + Number(v || 0), 0);
-                                const maxAllowed = Number(stock || 0);
-                                
-                                if (currentTotal + newVal <= maxAllowed) {
-                                  setSizeQuantities(prev => ({ ...prev, [s]: val }));
-                                } else {
-                                  const remaining = Math.max(0, maxAllowed - currentTotal);
-                                  setSizeQuantities(prev => ({ ...prev, [s]: remaining.toString() }));
-                                }
-                              }}
-                              style={{ padding: "0.4rem", textAlign: "center" }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  <label style={{ fontSize: "0.9rem", marginTop: "0.5rem", fontWeight: "bold" }}>Upload Photo:</label>
-                  <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} required style={{ border: "none", padding: "0" }} />
-                  <button type="submit" style={{ marginTop: "1rem" }}>Add Product</button>
-                </form>
-              </section>
-
-              <section className="manage-products">
-                <h2>Manage Inventory</h2>
+            <div id="inventory-section" style={{ scrollMarginTop: '100px', width: '100%', boxSizing: 'border-box' }}>
+              <section className="manage-products" style={{ width: '100%', boxSizing: 'border-box', border: 'none', background: 'transparent', padding: 0 }}>
+                <h2 style={{ marginBottom: '1.5rem' }}>Manage Inventory</h2>
                 <div className="inventory-list">
                   {products.map((p) => (
-                    <div key={p.id} className="inventory-item">
-                      <div className="item-thumbnail" style={{ backgroundImage: `url(${p.image})` }}></div>
-                      <div className="item-details">
-                        <h4>{p.name}</h4>
-                        <span style={{ fontSize: '0.85rem' }}>NPR {p.price} | {p.category} | Stock: {p.stock}</span>
-                        {p.sizes && <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px" }}>Variants: {p.sizes}</p>}
+                    <div key={p.id} className="inventory-item" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.8rem', alignItems: 'center', justifyContent: 'space-between', padding: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: '1 1 200px', minWidth: '150px' }}>
+                        <div className="item-thumbnail" style={{ backgroundImage: `url(${p.image})`, flexShrink: 0, margin: 0 }}></div>
+                        <div className="item-details" style={{ margin: 0 }}>
+                          <h4 style={{ margin: 0, wordBreak: 'break-word' }}>{p.name}</h4>
+                          <span style={{ fontSize: '0.85rem', display: 'block', marginTop: '2px' }}>NPR {p.price} | {p.category} | Stock: {p.stock}</span>
+                          {p.sizes && <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px" }}>Variants: {p.sizes}</p>}
+                        </div>
                       </div>
-                        <div style={{ display: 'flex', gap: '0.4rem' }}>
-                          <button className="edit-btn" onClick={() => handleUpdateStock(p)}>Refill</button>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center', justifyContent: 'flex-end', flex: '1 1 auto' }}>
+                          <label style={{ 
+                            cursor: 'pointer', 
+                            padding: '0.3rem 0.6rem', 
+                            borderRadius: '4px', 
+                            background: '#ec4899', 
+                            color: 'white', 
+                            fontSize: '0.75rem', 
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            margin: 0
+                          }}>
+                            📸 Photo
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              style={{ display: 'none' }} 
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const formData = new FormData();
+                                formData.append('id', p.id);
+                                formData.append('image', file);
+                                
+                                e.target.disabled = true;
+                                try {
+                                  const res = await fetch('/api/products', { method: 'POST', body: formData });
+                                  if (res.ok) {
+                                    alert("Photo updated successfully!");
+                                    fetchProducts();
+                                  } else {
+                                    alert("Failed to update photo");
+                                  }
+                                } catch (err) {
+                                  alert("Error uploading photo");
+                                } finally {
+                                  e.target.disabled = false;
+                                }
+                              }} 
+                            />
+                          </label>
+                          <button 
+                            style={{ 
+                              padding: '0.3rem 0.6rem', 
+                              borderRadius: '4px', 
+                              border: 'none', 
+                              cursor: 'pointer', 
+                              fontSize: '0.75rem', 
+                              fontWeight: 'bold',
+                              background: p.description?.includes('[HIDDEN]') ? '#f59e0b' : '#64748b',
+                              color: 'white'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const isHidden = p.description?.includes('[HIDDEN]');
+                              let newDesc = p.description || "";
+                              if (isHidden) {
+                                newDesc = newDesc.replace(/\[HIDDEN\]/g, '').trim();
+                              } else {
+                                newDesc += " [HIDDEN]";
+                              }
+                              fetch('/api/products', {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id: p.id, description: newDesc.trim() })
+                              }).then(() => fetchProducts());
+                            }}
+                          >
+                            {p.description?.includes('[HIDDEN]') ? '👁️ UNHIDE' : '🔒 HIDE'}
+                          </button>
                           <button className="delete-btn" onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}>X</button>
                         </div>
                     </div>
                   ))}
                 </div>
               </section>
+            </div>
+          )}
+          {activeTab === 'purchases' && (
+            <div id="purchases-section" className="purchases-suite-container" style={{ padding: "2rem", scrollMarginTop: '100px' }}>
+              <div style={{ marginBottom: "2rem" }}>
+                <h2 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                  📦 Supplier Purchases Suite
+                  <span style={{ fontSize: '0.75rem', background: '#3b82f6', color: 'white', padding: '2px 10px', borderRadius: '50px' }}>Auto-Stock Sync</span>
+                </h2>
+                <p style={{ color: 'var(--admin-text-muted)', margin: '0.5rem 0 0 0', fontSize: '0.9rem' }}>
+                  Record bulk supply shipments bought from manufacturers/suppliers. Stock levels instantly increment in your real-time database and ledger liabilities sync natively.
+                </p>
+              </div>
+
+              {/* Top Stats Overview */}
+              {(() => {
+                const pastPurchases = expenses.filter(e => e.category?.includes("Supplier Purchase"));
+                const totalCash = pastPurchases.filter(e => e.description?.includes("[Mode: CASH]")).reduce((sum, e) => sum + Number(e.amount), 0);
+                const totalBank = pastPurchases.filter(e => e.description?.includes("[Mode: BANK]")).reduce((sum, e) => sum + Number(e.amount), 0);
+                const creditPurchases = pastPurchases.filter(e => e.category === "Supplier Purchase (Credit)" || e.description?.includes("[Mode: CREDIT]")).reduce((sum, e) => sum + Number(e.amount), 0);
+                const creditSettlements = expenses.filter(e => e.category === "Supplier Purchase Settlement").reduce((sum, e) => sum + Number(e.amount), 0);
+                const totalCredit = creditPurchases - creditSettlements;
+
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                    <div className="theme-card" style={{ background: 'var(--admin-card)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--admin-border)' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', textTransform: 'uppercase', fontWeight: 'bold' }}>Total Cash Purchases</span>
+                      <div style={{ fontSize: '1.6rem', fontWeight: '900', color: '#10b981', marginTop: '0.5rem' }}>NPR {totalCash.toLocaleString()}</div>
+                    </div>
+                    <div className="theme-card" style={{ background: 'var(--admin-card)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--admin-border)' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', textTransform: 'uppercase', fontWeight: 'bold' }}>Total Bank / Transfer</span>
+                      <div style={{ fontSize: '1.6rem', fontWeight: '900', color: '#3b82f6', marginTop: '0.5rem' }}>NPR {totalBank.toLocaleString()}</div>
+                    </div>
+                    <div className="theme-card" style={{ background: 'var(--admin-card)', padding: '1.5rem', borderRadius: '12px', border: '1px solid #ef4444', backgroundColor: 'rgba(239, 68, 68, 0.02)' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#ef4444', textTransform: 'uppercase', fontWeight: 'bold' }}>Outstanding Supplier Credit</span>
+                      <div style={{ fontSize: '1.6rem', fontWeight: '900', color: '#ef4444', marginTop: '0.5rem' }}>NPR {totalCredit.toLocaleString()}</div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="admin-grid" style={{ gap: '2.5rem' }}>
+                {/* Left Form */}
+                <div className="theme-card" style={{ background: 'var(--admin-card)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--admin-border)', height: 'fit-content', width: '100%', boxSizing: 'border-box' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--admin-border)', paddingBottom: '0.8rem', flexWrap: 'wrap', gap: '0.8rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.15rem' }}>📦 Master Supply Intake</h3>
+                    <div style={{ display: 'flex', background: 'var(--admin-bg)', padding: '3px', borderRadius: '8px', border: '1px solid var(--admin-border)', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPurchaseMode("EXISTING");
+                          setPurchaseProductId("");
+                          setPurchaseCost("");
+                          setPurchaseSalePrice("");
+                        }}
+                        style={{
+                          padding: '0.4rem 0.8rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold',
+                          background: purchaseMode === "EXISTING" ? '#3b82f6' : 'transparent',
+                          color: purchaseMode === "EXISTING" ? 'white' : 'var(--admin-text-muted)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🔄 Restock Existing
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPurchaseMode("NEW");
+                          setPurchaseProductId("");
+                          setPurchaseProductSearch("");
+                          setPurchaseCost("");
+                          setPurchaseSalePrice("");
+                        }}
+                        style={{
+                          padding: '0.4rem 0.8rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold',
+                          background: purchaseMode === "NEW" ? '#10b981' : 'transparent',
+                          color: purchaseMode === "NEW" ? 'white' : 'var(--admin-text-muted)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ✨ Register New Item
+                      </button>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleRecordPurchase} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                    {purchaseMode === "EXISTING" ? (
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.4rem', color: 'var(--admin-text-muted)' }}>Target Inventory Item *</label>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type="text"
+                            placeholder={purchaseProductId ? `✅ ${products.find(p => p.id?.toString() === purchaseProductId)?.name}` : "🔍 Search & select product to restock..."}
+                            value={purchaseProductSearch}
+                            onFocus={() => setIsPurchaseSearchFocused(true)}
+                            onBlur={() => setTimeout(() => setIsPurchaseSearchFocused(false), 200)}
+                            onChange={(e) => {
+                              setPurchaseProductSearch(e.target.value);
+                              setIsPurchaseSearchFocused(true);
+                              if (purchaseProductId) setPurchaseProductId("");
+                            }}
+                            required={!purchaseProductId}
+                            style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${purchaseProductId ? '#10b981' : 'var(--admin-border)'}`, background: purchaseProductId ? 'rgba(16, 185, 129, 0.05)' : 'var(--admin-bg)', color: 'var(--admin-text)', fontWeight: purchaseProductId ? 'bold' : 'normal', fontSize: '0.9rem' }}
+                          />
+                          {isPurchaseSearchFocused && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '100%',
+                              left: 0,
+                              right: 0,
+                              background: 'var(--admin-card)',
+                              border: '1px solid var(--admin-border)',
+                              borderRadius: '8px',
+                              marginTop: '4px',
+                              maxHeight: '380px',
+                              overflowY: 'auto',
+                              zIndex: 100,
+                              boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+                            }}>
+                              {products.filter(p => p.name.toLowerCase().includes(purchaseProductSearch.toLowerCase())).map(p => (
+                                <div
+                                  key={p.id}
+                                  onClick={() => {
+                                    setPurchaseProductId(p.id?.toString() || "");
+                                    setPurchaseProductSearch(p.name);
+                                    setIsPurchaseSearchFocused(false);
+                                    
+                                    setPurchaseCost(p.cost?.toString() || "0");
+                                    setPurchaseSalePrice(p.price?.toString() || "0");
+                                    setPurchaseIsVisibleOnWeb(!p.description?.includes("[HIDDEN]"));
+                                  }}
+                                  style={{
+                                    padding: '0.6rem 0.8rem',
+                                    borderBottom: '1px solid rgba(0,0,0,0.04)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    background: purchaseProductId === p.id?.toString() ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+                                    fontSize: '0.85rem'
+                                  }}
+                                >
+                                  <span style={{ fontWeight: purchaseProductId === p.id?.toString() ? 'bold' : 'normal' }}>{p.name}</span>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)' }}>
+                                    Stock: <strong>{p.stock}</strong> | Price: NPR {p.price}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(16, 185, 129, 0.02)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.3rem', color: '#10b981' }}>✨ Brand New Item Name *</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. Premium Goat Ribs" 
+                            value={purchaseNewName} 
+                            onChange={(e) => setPurchaseNewName(e.target.value)} 
+                            required 
+                            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--admin-border)', background: 'var(--admin-bg)', color: 'var(--admin-text)', fontWeight: 'bold' }}
+                          />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.3rem', color: 'var(--admin-text-muted)' }}>Category</label>
+                            <select
+                              value={purchaseNewCategory}
+                              onChange={(e) => setPurchaseNewCategory(e.target.value)}
+                              style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--admin-border)', background: 'var(--admin-bg)', color: 'var(--admin-text)' }}
+                            >
+                              {categories.length > 0 ? (
+                                categories.map((c: any) => (
+                                  <option key={c.id} value={c.name}>{c.name}</option>
+                                ))
+                              ) : (
+                                ["Meat", "Frozen", "Dairy", "Bulk"].map(c => (
+                                  <option key={c} value={c}>{c}</option>
+                                ))
+                              )}
+                            </select>
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.3rem', color: 'var(--admin-text-muted)' }}>Product Photo (Optional)</label>
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              onChange={(e) => setPurchaseNewImageFile(e.target.files?.[0] || null)}
+                              style={{ width: '100%', fontSize: '0.7rem' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.4rem', color: 'var(--admin-text-muted)' }}>Supplier / Vendor Name *</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Kathmandu Agro Suppliers" 
+                        value={purchaseSupplier} 
+                        onChange={(e) => setPurchaseSupplier(e.target.value)} 
+                        required 
+                        style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--admin-border)', background: 'var(--admin-bg)', color: 'var(--admin-text)' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: 'var(--admin-bg)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--admin-border)' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.3rem', color: '#f87171' }}>Base Unit Cost (NPR) *</label>
+                        <input 
+                          type="number" 
+                          min="0" 
+                          placeholder="Cost per unit" 
+                          value={purchaseCost} 
+                          onChange={(e) => setPurchaseCost(e.target.value)} 
+                          required 
+                          style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #f87171', background: 'transparent', color: '#f87171', fontWeight: 'bold' }}
+                        />
+                        <span style={{ fontSize: '0.65rem', color: 'gray', marginTop: '2px', display: 'block' }}>Your internal acquisition cost</span>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.3rem', color: '#4ade80' }}>Retail Sale Price (NPR) *</label>
+                        <input 
+                          type="number" 
+                          min="0" 
+                          placeholder="Price for customer" 
+                          value={purchaseSalePrice} 
+                          onChange={(e) => setPurchaseSalePrice(e.target.value)} 
+                          required 
+                          style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #4ade80', background: 'transparent', color: '#4ade80', fontWeight: 'bold' }}
+                        />
+                        <span style={{ fontSize: '0.65rem', color: 'gray', marginTop: '2px', display: 'block' }}>Customer web checkout price</span>
+                      </div>
+                    </div>
+
+                    {(() => {
+                      const selectedProd = products.find(p => p.id?.toString() === purchaseProductId);
+                      const activeCategory = purchaseMode === "NEW" ? purchaseNewCategory : selectedProd?.category || "";
+                      const isSized = ['Meat', 'Frozen', 'Dairy', 'Bulk'].includes(activeCategory);
+                      
+                      if (isSized) {
+                        const getSizesList = (cat: string) => {
+                          if (cat === 'Meat') return ['1kg', '1.5kg', '2kg', '500gm', '250gm', 'Whole', 'Half'];
+                          if (cat === 'Frozen') return ['Packet', 'Box', 'Bulk Pack'];
+                          if (cat === 'Dairy') return ['2 Litre', '1 Litre', '500ml', '1kg', '500gm'];
+                          if (cat === 'Bulk') return ['Tray', 'Box', '10kg', '20kg'];
+                          return [];
+                        };
+                        const sizesList = getSizesList(activeCategory);
+                        const totalQty = Object.values(purchaseSizes).reduce((sum, qty) => sum + Number(qty || 0), 0);
+                        
+                        // Parse existing size stock counts
+                        const existingSizesStock: { [k: string]: number } = {};
+                        if (selectedProd?.sizes) {
+                          selectedProd.sizes.split(',').forEach((str: string) => {
+                            const [name, qtyVal] = str.trim().split(':');
+                            if (name) existingSizesStock[name] = Number(qtyVal || 0);
+                          });
+                        }
+                        
+                        return (
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                              <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--admin-text-muted)' }}>Incoming Variant Packaging Units *</label>
+                              {purchaseMode === "EXISTING" && selectedProd && (
+                                <span style={{ fontSize: '0.7rem', color: '#6366f1', background: 'rgba(99, 102, 241, 0.1)', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
+                                  Current Combined Shelf Stock: {selectedProd.stock} units
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", padding: "1.2rem 1rem", background: "var(--admin-bg)", borderRadius: "8px", border: "1px solid var(--admin-border)" }}>
+                              {sizesList.map(s => {
+                                const currentStockForSize = existingSizesStock[s] || 0;
+                                return (
+                                  <div key={s} style={{ 
+                                    display: "flex", 
+                                    flexDirection: "column", 
+                                    gap: "0.3rem", 
+                                    flex: '1 1 65px', 
+                                    minWidth: '65px', 
+                                    background: 'var(--admin-card)', 
+                                    padding: '0.6rem', 
+                                    borderRadius: '10px', 
+                                    border: `1px solid ${purchaseMode === "EXISTING" && selectedProd && currentStockForSize === 0 ? 'rgba(239, 68, 68, 0.4)' : 'var(--admin-border)'}`,
+                                    alignItems: 'center',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                                  }}>
+                                    <span style={{ fontSize: "0.85rem", fontWeight: "900", color: "var(--admin-text)", letterSpacing: '0.5px' }}>
+                                      {s}
+                                    </span>
+                                    
+                                    {purchaseMode === "EXISTING" && selectedProd ? (
+                                      <span style={{ 
+                                        fontSize: '0.65rem', 
+                                        padding: '3px 0', 
+                                        borderRadius: '6px',
+                                        background: currentStockForSize > 0 ? '#10b981' : '#ef4444',
+                                        color: 'white',
+                                        fontWeight: 'bold',
+                                        width: '100%',
+                                        textAlign: 'center',
+                                        display: 'block',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                      }} title={`Current stock for size ${s}`}>
+                                        Stock: {currentStockForSize}
+                                      </span>
+                                    ) : (
+                                      <span style={{ 
+                                        fontSize: '0.65rem', 
+                                        padding: '3px 0', 
+                                        width: '100%', 
+                                        display: 'block', 
+                                        visibility: 'hidden' 
+                                      }}>
+                                        Stock: 0
+                                      </span>
+                                    )}
+
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      placeholder="+0"
+                                      value={purchaseSizes[s] || ""}
+                                      onChange={(e) => setPurchaseSizes(prev => ({ ...prev, [s]: e.target.value }))}
+                                      style={{ 
+                                        width: '100%', 
+                                        padding: "0.4rem", 
+                                        textAlign: "center", 
+                                        borderRadius: "6px", 
+                                        border: "1px solid var(--admin-border)", 
+                                        background: "var(--admin-bg)", 
+                                        color: "var(--admin-text)", 
+                                        fontWeight: "bold", 
+                                        fontSize: '0.9rem', 
+                                        marginTop: '2px' 
+                                      }}
+                                    />
+
+                                    {purchaseMode === "EXISTING" && Number(purchaseSizes[s] || 0) > 0 && (
+                                      <span style={{ fontSize: '0.65rem', color: '#10b981', textAlign: 'center', fontWeight: 'bold', marginTop: '-1px' }}>
+                                        ➔ {currentStockForSize + Number(purchaseSizes[s] || 0)}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'flex-end', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px dashed var(--admin-border)', fontSize: '0.9rem', fontWeight: 'bold', color: '#10b981' }}>
+                                Incoming Additions: +{totalQty} Units
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.4rem', color: 'var(--admin-text-muted)' }}>Incoming Batch Quantity *</label>
+                          <input 
+                            type="number" 
+                            min="1" 
+                            placeholder="Quantity added to inventory" 
+                            value={purchaseQty} 
+                            onChange={(e) => setPurchaseQty(e.target.value)} 
+                            required={!isSized}
+                            style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--admin-border)', background: 'var(--admin-bg)', color: 'var(--admin-text)', fontWeight: 'bold', fontSize: '1.1rem' }}
+                          />
+                        </div>
+                      );
+                    })()}
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.4rem', color: 'var(--admin-text-muted)' }}>Payment Settlement Mode *</label>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {(["CASH", "BANK", "CREDIT"] as const).map((mode) => (
+                          <button
+                            type="button"
+                            key={mode}
+                            onClick={() => setPurchasePayMode(mode)}
+                            style={{
+                              flex: 1,
+                              padding: '0.7rem',
+                              borderRadius: '6px',
+                              border: `1px solid ${purchasePayMode === mode ? (mode === 'CREDIT' ? '#ef4444' : '#3b82f6') : 'var(--admin-border)'}`,
+                              background: purchasePayMode === mode ? (mode === 'CREDIT' ? '#ef4444' : '#3b82f6') : 'transparent',
+                              color: purchasePayMode === mode ? 'white' : 'var(--admin-text-muted)',
+                              fontWeight: 'bold',
+                              fontSize: '0.75rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {mode === 'CREDIT' ? '⚠️ CREDIT' : mode}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Visibility Switch */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.8rem 1rem', background: purchaseIsVisibleOnWeb ? 'rgba(59, 130, 246, 0.05)' : 'rgba(245, 158, 11, 0.05)', borderRadius: '8px', border: `1px solid ${purchaseIsVisibleOnWeb ? 'rgba(59, 130, 246, 0.2)' : 'rgba(245, 158, 11, 0.2)'}` }}>
+                      <div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: purchaseIsVisibleOnWeb ? '#3b82f6' : '#f59e0b' }}>
+                          {purchaseIsVisibleOnWeb ? '🌐 Visible on Web Storefront' : '🔒 Keep as Backroom Stock Only'}
+                        </div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--admin-text-muted)', marginTop: '2px' }}>
+                          {purchaseIsVisibleOnWeb ? 'Customers can view and order this instantly' : 'Hidden from web catalog; usable internally'}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPurchaseIsVisibleOnWeb(!purchaseIsVisibleOnWeb)}
+                        style={{
+                          padding: '0.3rem 0.7rem',
+                          borderRadius: '20px',
+                          border: 'none',
+                          fontSize: '0.7rem',
+                          fontWeight: 'bold',
+                          background: purchaseIsVisibleOnWeb ? '#3b82f6' : '#f59e0b',
+                          color: 'white',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {purchaseIsVisibleOnWeb ? '🌐 PUBLIC' : '🔒 HIDDEN'}
+                      </button>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isPurchaseProcessing}
+                      style={{
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        background: '#10b981',
+                        color: 'white',
+                        border: 'none',
+                        fontWeight: '900',
+                        fontSize: '1rem',
+                        cursor: isPurchaseProcessing ? 'not-allowed' : 'pointer',
+                        marginTop: '0.5rem',
+                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)'
+                      }}
+                    >
+                      {isPurchaseProcessing ? '⏳ Recording Shipment & Syncing...' : '💾 Confirm Shipment & Sync Ledger'}
+                    </button>
+                  </form>
+                </div>
+
+                {/* Right Panel: Past Shipment History */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+                  <div className="theme-card" style={{ background: 'var(--admin-card)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--admin-border)', boxSizing: 'border-box' }}>
+                    <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.15rem' }}>📜 Supplier Ledger & History</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '550px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                      {expenses.filter(e => e.category?.includes("Supplier Purchase")).length === 0 ? (
+                        <p style={{ color: 'var(--admin-text-muted)', fontStyle: 'italic', fontSize: '0.9rem' }}>No bulk supply shipments recorded yet.</p>
+                      ) : (
+                        expenses.filter(e => e.category?.includes("Supplier Purchase")).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(exp => {
+                          const isCredit = exp.category === "Supplier Purchase (Credit)" || exp.description?.includes("[Mode: CREDIT]");
+                          return (
+                            <div key={exp.id} style={{ padding: '1rem', background: 'var(--admin-bg)', borderRadius: '12px', border: `1px solid ${isCredit ? 'rgba(239, 68, 68, 0.3)' : 'var(--admin-border)'}` }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--admin-text)' }}>
+                                  {exp.description?.split('|')[1]?.split('[')[0]?.trim() || "Bulk Items"}
+                                </span>
+                                <span style={{ fontWeight: '900', color: isCredit ? '#ef4444' : '#10b981', fontSize: '0.95rem' }}>
+                                  NPR {Number(exp.amount).toLocaleString()}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', marginBottom: '0.4rem' }}>
+                                {exp.description?.split('|')[0]?.trim()}
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.7rem' }}>
+                                <span style={{ color: 'gray' }}>
+                                  📅 {new Date(exp.date).toLocaleDateString()}
+                                </span>
+                                <span style={{ padding: '2px 6px', borderRadius: '4px', background: isCredit ? '#ef4444' : '#3b82f6', color: 'white', fontWeight: 'bold', fontSize: '0.65rem' }}>
+                                  {isCredit ? 'UNSETTLED CREDIT' : 'PAID'}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'suppliers' && (
+            <div id="suppliers-section" className="suppliers-suite-container" style={{ padding: "2rem", scrollMarginTop: '100px' }}>
+              <div style={{ marginBottom: "2rem" }}>
+                <h2 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                  🤝 Suppliers & Vendor Accounts
+                  <span style={{ fontSize: '0.75rem', background: '#ec4899', color: 'white', padding: '2px 10px', borderRadius: '50px' }}>Khata Sync</span>
+                </h2>
+                <p style={{ color: 'var(--admin-text-muted)', margin: '0.5rem 0 0 0', fontSize: '0.9rem' }}>
+                  Track outstanding khata balances, settlement ledgers, and net outlays for your manufacturing suppliers and wholesale traders.
+                </p>
+              </div>
+
+              {(() => {
+                const pastPurchases = expenses.filter(e => e.category?.includes("Supplier Purchase"));
+                const settlements = expenses.filter(e => e.category === "Supplier Purchase Settlement");
+                
+                // Group by supplier name
+                const supplierMap: { [name: string]: { totalPurchases: number; creditPurchases: number; settled: number; history: any[] } } = {};
+                
+                pastPurchases.forEach(e => {
+                  const name = e.description?.split('|')[0]?.replace('📦 Purchase from', '')?.trim() || 'Unknown Supplier';
+                  if (!supplierMap[name]) {
+                    supplierMap[name] = { totalPurchases: 0, creditPurchases: 0, settled: 0, history: [] };
+                  }
+                  supplierMap[name].totalPurchases += Number(e.amount);
+                  const isCredit = e.category === "Supplier Purchase (Credit)" || e.description?.includes("[Mode: CREDIT]");
+                  if (isCredit) {
+                    supplierMap[name].creditPurchases += Number(e.amount);
+                  }
+                  supplierMap[name].history.push(e);
+                });
+
+                settlements.forEach(e => {
+                  const name = e.description?.split('|')[0]?.replace('💵 Khata Settlement to', '')?.trim() || 'Unknown Supplier';
+                  if (!supplierMap[name]) {
+                    supplierMap[name] = { totalPurchases: 0, creditPurchases: 0, settled: 0, history: [] };
+                  }
+                  supplierMap[name].settled += Number(e.amount);
+                  supplierMap[name].history.push(e);
+                });
+
+                const entries = Object.entries(supplierMap);
+
+                if (entries.length === 0) {
+                  return (
+                    <div className="theme-card" style={{ background: 'var(--admin-card)', padding: '4rem 2rem', textAlign: 'center', borderRadius: '16px', border: '1px solid var(--admin-border)', color: 'var(--admin-text-muted)' }}>
+                      No suppliers mapped yet. Record your first shipment in the <strong>Purchases</strong> tab to auto-create vendor ledger accounts!
+                    </div>
+                  );
+                }
+
+                return (
+                  <div style={{ display: 'grid', gap: '1.5rem' }}>
+                    {entries.map(([sName, data], idx) => {
+                      const outstanding = data.creditPurchases - data.settled;
+                      // Sort history descending by date
+                      const sortedHistory = [...data.history].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                      
+                      return (
+                        <div key={idx} className="theme-card" style={{ background: 'var(--admin-card)', borderRadius: '16px', border: '1px solid var(--admin-border)', overflow: 'hidden' }}>
+                          <div style={{ padding: '1.5rem 2rem', background: outstanding > 0 ? 'rgba(239, 68, 68, 0.03)' : 'rgba(16, 185, 129, 0.03)', borderBottom: '1px solid var(--admin-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                            <div>
+                              <h3 style={{ margin: 0, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                🏭 {sName}
+                              </h3>
+                              <div style={{ fontSize: '0.8rem', color: 'var(--admin-text-muted)', marginTop: '4px' }}>
+                                Lifetime Volume: NPR {data.totalPurchases.toLocaleString()} | Total Credit Logged: NPR {data.creditPurchases.toLocaleString()}
+                              </div>
+                            </div>
+                            
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                              <div style={{ textAlign: 'right' }}>
+                                <span style={{ fontSize: '0.75rem', color: outstanding > 0 ? '#ef4444' : 'var(--admin-text-muted)', fontWeight: 'bold', display: 'block' }}>
+                                  {outstanding > 0 ? '⚠️ UNPAID KHATA BALANCE' : '✅ KHATA CLEARED'}
+                                </span>
+                                <span style={{ fontSize: '1.4rem', fontWeight: '900', color: outstanding > 0 ? '#ef4444' : '#10b981' }}>
+                                  NPR {outstanding.toLocaleString()}
+                                </span>
+                              </div>
+                              
+                              {outstanding > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    const inputAmt = prompt(`Settle outstanding khata debt for ${sName}.\nTotal Outstanding: NPR ${outstanding.toLocaleString()}.\n\nEnter settlement amount:`, outstanding.toString());
+                                    if (inputAmt !== null) {
+                                      const settleAmt = parseFloat(inputAmt);
+                                      if (isNaN(settleAmt) || settleAmt <= 0) {
+                                        alert("Invalid amount entered. Please enter a positive number.");
+                                        return;
+                                      }
+                                      if (settleAmt > outstanding) {
+                                        alert(`Cannot settle more than outstanding balance (NPR ${outstanding.toLocaleString()}).`);
+                                        return;
+                                      }
+                                      
+                                      const inputNote = prompt(`(Optional) Add a note or reference number for this payment:`, "");
+                                      if (inputNote === null) return;
+                                      
+                                      try {
+                                        const res = await fetch('/api/expenses', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            amount: settleAmt,
+                                            type: "EXPENSE",
+                                            category: "Supplier Purchase Settlement",
+                                            description: `💵 Khata Settlement to ${sName} | Settled ${settleAmt === outstanding ? 'full' : 'partial'} credit liabilities${inputNote.trim() ? ` | Note: ${inputNote.trim()}` : ''}`,
+                                            date: new Date().toISOString()
+                                          })
+                                        });
+                                        if (!res.ok) throw new Error("Settlement failed");
+                                        alert(`✅ Successfully recorded debt settlement of NPR ${settleAmt.toLocaleString()} for ${sName}!`);
+                                        fetchExpenses();
+                                      } catch (err: any) {
+                                        alert(err.message);
+                                      }
+                                    }
+                                  }}
+                                  style={{ padding: '0.7rem 1.2rem', borderRadius: '8px', background: '#10b981', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)' }}
+                                >
+                                  💵 Settle Khata
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Individual History records preview */}
+                          <div style={{ padding: '1.5rem 2rem' }}>
+                            <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: 'var(--admin-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ledger Activity Log</h4>
+                            <div style={{ overflowX: 'auto' }}>
+                              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                                <thead>
+                                  <tr style={{ borderBottom: '1px solid var(--admin-border)', color: 'var(--admin-text-muted)' }}>
+                                    <th style={{ padding: '0.6rem 0.5rem' }}>Date</th>
+                                    <th style={{ padding: '0.6rem 0.5rem' }}>Type & Details</th>
+                                    <th style={{ padding: '0.6rem 0.5rem', textAlign: 'right' }}>Amount</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {sortedHistory.map((h, hIdx) => {
+                                    const isSettlement = h.category === "Supplier Purchase Settlement";
+                                    return (
+                                      <tr key={hIdx} style={{ borderBottom: '1px solid rgba(0,0,0,0.03)' }}>
+                                        <td style={{ padding: '0.6rem 0.5rem', whiteSpace: 'nowrap', color: 'var(--admin-text-muted)' }}>
+                                          {new Date(h.date).toLocaleDateString()}
+                                        </td>
+                                        <td style={{ padding: '0.6rem 0.5rem' }}>
+                                          <span style={{ 
+                                            fontSize: '0.65rem', 
+                                            padding: '2px 6px', 
+                                            borderRadius: '4px', 
+                                            background: isSettlement ? '#16a34a' : '#dc2626', 
+                                            color: '#ffffff', 
+                                            fontWeight: 'bold', 
+                                            marginRight: '8px',
+                                            display: 'inline-block'
+                                          }}>
+                                            {isSettlement ? 'SETTLEMENT PAID' : 'SHIPMENT INTAKE'}
+                                          </span>
+                                          <span>{h.description?.replace(/\[Mode:.+?\]/g, '')?.replace(/\[PID:.+?\]/g, '')?.replace(`📦 Purchase from ${sName} |`, '')?.replace(`💵 Khata Settlement to ${sName} |`, '')?.trim()}</span>
+                                        </td>
+                                        <td style={{ padding: '0.6rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: isSettlement ? '#10b981' : 'var(--admin-text)' }}>
+                                          {isSettlement ? '-' : ''}NPR {Number(h.amount).toLocaleString()}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {activeTab === 'customers' && (
+            <div id="customers-section" className="customers-suite-container" style={{ padding: "2rem", scrollMarginTop: '100px' }}>
+              <div style={{ marginBottom: "2rem" }}>
+                <h2 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                  👥 Customers CRM & Order Records
+                  <span style={{ fontSize: '0.75rem', background: '#3b82f6', color: 'white', padding: '2px 10px', borderRadius: '50px' }}>Auto Indexing</span>
+                </h2>
+                <p style={{ color: 'var(--admin-text-muted)', margin: '0.5rem 0 0 0', fontSize: '0.9rem' }}>
+                  Automatically consolidated list of verified web customers and registered store shoppers. Review aggregate lifetime spending and contact info.
+                </p>
+              </div>
+
+              {(() => {
+                // Deduplicate customers by email or phone
+                const customerMap: { [key: string]: { name: string; email: string; phone: string; address: string; orderCount: number; totalSpent: number; creditOwed: number; orders: any[] } } = {};
+
+                // Process orders
+                orders.forEach(o => {
+                  const key = o.email?.toLowerCase() || o.phone || o.name;
+                  if (!key) return;
+                  if (!customerMap[key]) {
+                    customerMap[key] = {
+                      name: o.name || 'Anonymous',
+                      email: o.email || '',
+                      phone: o.phone || '',
+                      address: o.address || '',
+                      orderCount: 0,
+                      totalSpent: 0,
+                      creditOwed: 0,
+                      orders: []
+                    };
+                  }
+                  // Override empty info if newer order has it
+                  if (o.phone && !customerMap[key].phone) customerMap[key].phone = o.phone;
+                  if (o.address && !customerMap[key].address) customerMap[key].address = o.address;
+                  
+                  if (o.status === 'Verified') {
+                    customerMap[key].orderCount += 1;
+                    customerMap[key].totalSpent += Number(o.total || 0);
+                  }
+                  customerMap[key].orders.push(o);
+                });
+
+                // Process POS Sales as walk-in customers if named
+                expenses.filter(e => (e.category?.includes("POS Store Sale") || e.category?.includes("Offline Sale")) && e.description?.includes("Customer:")).forEach(e => {
+                  const match = e.description?.match(/Customer:\s*(.+?)(?:\s*\||$)/);
+                  const name = match ? match[1].trim() : "";
+                  if (name && name !== "Walk-in") {
+                    const phoneMatch = e.description?.match(/Phone:\s*(\d+)/);
+                    const phone = phoneMatch ? phoneMatch[1] : "";
+                    const isCredit = e.category?.includes("Credit") || e.description?.includes("Mode: CREDIT");
+                    const key = name.toLowerCase();
+                    
+                    if (!customerMap[key]) {
+                      customerMap[key] = {
+                        name: name,
+                        email: isCredit ? '⚠️ Khata / Credit Customer' : 'Walk-in POS Customer',
+                        phone: phone,
+                        address: 'Store Front',
+                        orderCount: 0,
+                        totalSpent: 0,
+                        creditOwed: 0,
+                        orders: []
+                      };
+                    }
+                    if (phone && !customerMap[key].phone) customerMap[key].phone = phone;
+                    if (isCredit) {
+                      customerMap[key].email = '⚠️ Khata / Credit Customer';
+                      customerMap[key].creditOwed += Number(e.amount || 0);
+                    }
+                    
+                    customerMap[key].orderCount += 1;
+                    customerMap[key].totalSpent += Number(e.amount || 0);
+                  }
+                });
+
+                // Process Khata Collections to reduce creditOwed
+                expenses.filter(e => e.category === "Customer Khata Collection").forEach(e => {
+                  const match = e.description?.match(/Collection from\s*(.+?)(?:\s*\||$)/);
+                  const name = match ? match[1].trim() : "";
+                  if (name) {
+                    const key = name.toLowerCase();
+                    if (customerMap[key]) {
+                      customerMap[key].creditOwed -= Number(e.amount || 0);
+                    }
+                  }
+                });
+
+                const list = Object.values(customerMap).sort((a, b) => b.totalSpent - a.totalSpent);
+
+                if (list.length === 0) {
+                  return (
+                    <div className="theme-card" style={{ background: 'var(--admin-card)', padding: '4rem 2rem', textAlign: 'center', borderRadius: '16px', border: '1px solid var(--admin-border)', color: 'var(--admin-text-muted)' }}>
+                      No named customers indexed yet. Once shoppers checkout via web or Quick Sale POS, they will automatically map here!
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="theme-card" style={{ background: 'var(--admin-card)', borderRadius: '16px', border: '1px solid var(--admin-border)', padding: '1.5rem 2rem' }}>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '2px solid var(--admin-border)', color: 'var(--admin-text-muted)' }}>
+                            <th style={{ padding: '1rem 0.5rem' }}>Customer Name</th>
+                            <th style={{ padding: '1rem 0.5rem' }}>Contact Info</th>
+                            <th style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>Total Orders</th>
+                            <th style={{ padding: '1rem 0.5rem', textAlign: 'right' }}>Total LTV (Spent)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {list.map((c, idx) => (
+                            <tr key={idx} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                              <td style={{ padding: '1rem 0.5rem' }}>
+                                <div style={{ fontWeight: 'bold', fontSize: '1rem', color: 'var(--admin-text)' }}>{c.name}</div>
+                                {c.address && <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', marginTop: '2px' }}>📍 {c.address}</div>}
+                              </td>
+                              <td style={{ padding: '1rem 0.5rem' }}>
+                                {c.phone && <div style={{ marginBottom: '2px' }}>📞 <a href={`tel:${c.phone}`} style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: '600' }}>{c.phone}</a></div>}
+                                {c.email && <div style={{ fontSize: '0.8rem', color: c.creditOwed > 0 ? '#ef4444' : 'var(--admin-text-muted)', fontWeight: c.creditOwed > 0 ? 'bold' : 'normal' }}>{c.email}</div>}
+                              </td>
+                              <td style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
+                                <span style={{ background: 'var(--admin-bg)', padding: '3px 10px', borderRadius: '20px', fontWeight: 'bold', border: '1px solid var(--admin-border)' }}>
+                                  {c.orderCount}
+                                </span>
+                              </td>
+                              <td style={{ padding: '1rem 0.5rem', textAlign: 'right' }}>
+                                <div style={{ fontWeight: '900', color: '#10b981', fontSize: '1.05rem' }}>
+                                  NPR {c.totalSpent.toLocaleString()}
+                                </div>
+                                {c.creditOwed > 0 && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem', marginTop: '6px' }}>
+                                    <div style={{ fontSize: '0.75rem', background: '#fee2e2', color: '#dc2626', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                      ⚠️ Unpaid Khata: NPR {c.creditOwed.toLocaleString()}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        const inputAmt = prompt(`Receive outstanding khata repayment from ${c.name}.\nTotal Unpaid: NPR ${c.creditOwed.toLocaleString()}.\n\nEnter payment received:`, c.creditOwed.toString());
+                                        if (inputAmt !== null) {
+                                          const rcvAmt = parseFloat(inputAmt);
+                                          if (isNaN(rcvAmt) || rcvAmt <= 0) {
+                                            alert("Invalid amount entered. Please enter a positive number.");
+                                            return;
+                                          }
+                                          if (rcvAmt > c.creditOwed) {
+                                            alert(`Cannot collect more than outstanding balance (NPR ${c.creditOwed.toLocaleString()}).`);
+                                            return;
+                                          }
+                                          
+                                          const inputNote = prompt(`(Optional) Reference/Receipt note for this collection:`, "");
+                                          if (inputNote === null) return;
+                                          
+                                          try {
+                                            const res = await fetch('/api/expenses', {
+                                              method: 'POST',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({
+                                                amount: rcvAmt,
+                                                type: "INCOME",
+                                                category: "Customer Khata Collection",
+                                                description: `💵 Khata Collection from ${c.name} | Collected ${rcvAmt === c.creditOwed ? 'full' : 'partial'} outstanding pos credit${inputNote.trim() ? ` | Note: ${inputNote.trim()}` : ''}`,
+                                                date: new Date().toISOString()
+                                              })
+                                            });
+                                            if (!res.ok) throw new Error("Collection logging failed");
+                                            alert(`✅ Successfully recorded cash receipt of NPR ${rcvAmt.toLocaleString()} from ${c.name}!`);
+                                            fetchExpenses();
+                                          } catch (err: any) {
+                                            alert(err.message);
+                                          }
+                                        }
+                                      }}
+                                      style={{ padding: '0.4rem 0.8rem', borderRadius: '6px', background: '#10b981', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer', boxShadow: '0 2px 6px rgba(16, 185, 129, 0.2)' }}
+                                    >
+                                      💵 Receive Payment
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -2636,85 +3654,6 @@ export default function AdminPage() {
 
       <PrintableBill printingOrders={printingOrders} />
 
-      {/* Refill Stock Modal */}
-      {refillingProduct && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: 'var(--admin-card)', padding: '2.5rem', borderRadius: '16px', maxWidth: '500px', width: '100%', border: '1px solid var(--admin-border)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
-            <h2 style={{ marginBottom: '0.5rem', color: 'var(--admin-text)' }}>Refill Inventory</h2>
-            <p style={{ color: 'var(--admin-text-muted)', marginBottom: '2rem', fontSize: '0.9rem' }}>Update stock levels for <strong>{refillingProduct.name}</strong></p>
-
-            {['Clothes', 'Shoes'].includes(refillingProduct.category) ? (
-              <>
-                <p style={{ fontSize: '0.8rem', color: 'var(--admin-text-muted)', marginBottom: '1rem', textAlign: 'center' }}>
-                   Prev Total: <strong>{originalStock}</strong> → New Total: <strong>{Object.values(refillSizes).reduce((sum, qty) => sum + Number(qty || 0), 0)}</strong>
-                </p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-                  {Object.keys(refillSizes).sort().map(size => (
-                    <div key={size} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 'bold', textAlign: 'center', color: 'var(--admin-text-muted)' }}>{size}</label>
-                      <span style={{ fontSize: '0.65rem', color: '#ff9a9e', textAlign: 'center', marginTop: '-0.3rem' }}>Prev: {previousSizes[size] || 0}</span>
-                      <input 
-                        type="number" 
-                        value={refillSizes[size]} 
-                        onChange={(e) => setRefillSizes(prev => ({ ...prev, [size]: e.target.value }))}
-                        style={{ padding: '0.8rem', textAlign: 'center', background: 'var(--admin-bg)', color: 'var(--admin-text)', border: '1px solid var(--admin-border)', borderRadius: '8px' }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div style={{ marginBottom: '2rem' }}>
-                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--admin-text-muted)' }}>
-                  General Stock Quantity (Prev: {originalStock})
-                </label>
-                <input 
-                  type="number" 
-                  value={refillingProduct.stock} 
-                  onChange={(e) => setRefillingProduct({ ...refillingProduct, stock: Number(e.target.value) })}
-                  style={{ width: '100%', padding: '1rem', background: 'var(--admin-bg)', color: 'var(--admin-text)', border: '1px solid var(--admin-border)', borderRadius: '8px', fontSize: '1.2rem', fontWeight: 'bold' }}
-                />
-              </div>
-            )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--admin-text-muted)' }}>New Unit Cost (NPR)</label>
-                <input 
-                  type="number" 
-                  value={refillCost} 
-                  onChange={(e) => setRefillCost(e.target.value)}
-                  style={{ width: '100%', padding: '0.8rem', background: 'var(--admin-bg)', color: 'var(--admin-text)', border: '1px solid var(--admin-border)', borderRadius: '8px' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--admin-text-muted)' }}>New Selling Price (NPR)</label>
-                <input 
-                  type="number" 
-                  value={refillPrice} 
-                  onChange={(e) => setRefillPrice(e.target.value)}
-                  style={{ width: '100%', padding: '0.8rem', background: 'var(--admin-bg)', color: 'var(--admin-text)', border: '1px solid var(--admin-border)', borderRadius: '8px' }}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button 
-                onClick={() => setRefillingProduct(null)}
-                style={{ flex: 1, padding: '1rem', borderRadius: '8px', background: 'transparent', border: '1px solid var(--admin-border)', color: 'var(--admin-text)', cursor: 'pointer', fontWeight: 'bold' }}
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleSaveRefill}
-                style={{ flex: 2, padding: '1rem', borderRadius: '8px', background: 'var(--primary)', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Custom Confirmation Modal */}
       {modalConfig.show && (
         <div className="admin-modal-overlay">

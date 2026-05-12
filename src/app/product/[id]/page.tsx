@@ -208,14 +208,48 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
       <div className="pdp-grid">
         {/* Left: Image */}
         <div className="pdp-image-col">
-          <div className="pdp-image-wrapper">
-            <Image 
-              src={product.image} 
-              alt={product.name} 
-              layout="fill" 
-              objectFit="cover" 
-              priority
-            />
+          <div className="pdp-image-wrapper" style={{ position: 'relative' }}>
+            {!product.image || product.image.trim() === "" || product.image.includes("placeholder") ? (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: product.category === 'Meat' ? 'linear-gradient(135deg, #3a1c71 0%, #d76d77 50%, #ffaf7b 100%)' :
+                            product.category === 'Frozen' ? 'linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)' :
+                            product.category === 'Bakery' ? 'linear-gradient(135deg, #f12711 0%, #f5af19 100%)' :
+                            product.category === 'Dairy' ? 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)' :
+                            'linear-gradient(135deg, #1f4037 0%, #99f2c8 100%)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                padding: '2rem',
+                textAlign: 'center',
+                boxSizing: 'border-box',
+                borderRadius: 'inherit'
+              }}>
+                <span style={{ fontSize: '4rem', filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.3))', marginBottom: '0.5rem' }}>
+                  {product.category === 'Meat' ? '🥩' : product.category === 'Frozen' ? '❄️' : product.category === 'Bakery' ? '🥖' : product.category === 'Dairy' ? '🥛' : '✨'}
+                </span>
+                <strong style={{ fontSize: '1.8rem', fontFamily: 'Playfair Display, serif', letterSpacing: '0.05em', lineHeight: 1.1, textShadow: '0 4px 8px rgba(0,0,0,0.3)', marginBottom: '1rem' }}>
+                  Delicious Meat Shop
+                </strong>
+                <span style={{ fontSize: '0.85rem', fontWeight: '800', letterSpacing: '0.1em', textTransform: 'uppercase', background: 'rgba(0,0,0,0.35)', padding: '0.4rem 1.2rem', borderRadius: '30px', backdropFilter: 'blur(8px)', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+                  ⏳ Image Uploading Soon
+                </span>
+              </div>
+            ) : (
+              <Image 
+                src={product.image} 
+                alt={product.name} 
+                layout="fill" 
+                objectFit="cover" 
+                priority
+              />
+            )}
           </div>
         </div>
 

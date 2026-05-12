@@ -62,25 +62,50 @@ export async function POST(request: Request) {
       imageUrl = publicUrlData.publicUrl;
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('products')
-      .insert([{
-        name,
-        category,
-        price: Number(price),
-        cost: Number(cost) || 0,
-        image: imageUrl || "https://dummyimage.com/400x500/ccc/fff.png",
-        stock: Number(stock) || 10,
-        description: description || "",
-        sizes: sizes || "",
-        sales_count: 0
-      }])
-      .select()
-      .single();
+    const id = formData.get('id') as string;
+    
+    if (id) {
+      // Update logic
+      const updates: any = {};
+      if (name) updates.name = name;
+      if (category) updates.category = category;
+      if (price) updates.price = Number(price);
+      if (cost) updates.cost = Number(cost);
+      if (stock) updates.stock = Number(stock);
+      if (description) updates.description = description;
+      if (sizes) updates.sizes = sizes;
+      if (imageUrl) updates.image = imageUrl;
 
-    if (error) throw error;
+      const { data, error } = await supabaseAdmin
+        .from('products')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
 
-    return NextResponse.json(data, { status: 201 });
+      if (error) throw error;
+      return NextResponse.json(data, { status: 200 });
+    } else {
+      // Insert logic
+      const { data, error } = await supabaseAdmin
+        .from('products')
+        .insert([{
+          name,
+          category,
+          price: Number(price),
+          cost: Number(cost) || 0,
+          image: imageUrl || "/placeholder.svg",
+          stock: Number(stock) || 10,
+          description: description || "",
+          sizes: sizes || "",
+          sales_count: 0
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return NextResponse.json(data, { status: 201 });
+    }
   } catch (error) {
     console.error("Save product err:", error);
     return NextResponse.json({ error: 'Failed to save product' }, { status: 500 });
@@ -110,7 +135,7 @@ export async function DELETE(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const { id, stock, cost, price, sizes, salesCount } = await request.json();
+    const { id, stock, cost, price, sizes, salesCount, description } = await request.json();
     if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
 
     const updates: any = {};
@@ -119,6 +144,7 @@ export async function PATCH(request: Request) {
     if (price !== undefined) updates.price = Number(price);
     if (sizes !== undefined) updates.sizes = sizes;
     if (salesCount !== undefined) updates.sales_count = Number(salesCount);
+    if (description !== undefined) updates.description = description;
 
     const { data, error } = await supabaseAdmin
       .from('products')

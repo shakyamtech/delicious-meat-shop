@@ -67,16 +67,49 @@ const ProductCard = ({ product, addToCart }: any) => {
     <RevealWrapper className="product-card">
       <Link href={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' }}>
         <div className="product-image" style={{ position: 'relative' }}>
-          <Image
-            src={product.image}
-            alt={product.name}
-            fill
-            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-            style={{ objectFit: 'cover' }}
-            priority={false}
-            onLoad={() => setImgLoaded(true)}
-            className={imgLoaded ? 'loaded' : ''}
-          />
+          {!product.image || product.image.trim() === "" || product.image.includes("placeholder") ? (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: product.category === 'Meat' ? 'linear-gradient(135deg, #3a1c71 0%, #d76d77 50%, #ffaf7b 100%)' :
+                          product.category === 'Frozen' ? 'linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)' :
+                          product.category === 'Bakery' ? 'linear-gradient(135deg, #f12711 0%, #f5af19 100%)' :
+                          product.category === 'Dairy' ? 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)' :
+                          'linear-gradient(135deg, #1f4037 0%, #99f2c8 100%)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              padding: '0.8rem',
+              textAlign: 'center',
+              boxSizing: 'border-box'
+            }}>
+              <span style={{ fontSize: '2.2rem', filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))', marginBottom: '0.2rem' }}>
+                {product.category === 'Meat' ? '🥩' : product.category === 'Frozen' ? '❄️' : product.category === 'Bakery' ? '🥖' : product.category === 'Dairy' ? '🥛' : '✨'}
+              </span>
+              <strong style={{ fontSize: '0.95rem', fontFamily: 'Playfair Display, serif', letterSpacing: '0.05em', lineHeight: 1.1, textShadow: '0 2px 4px rgba(0,0,0,0.3)', marginBottom: '0.5rem' }}>
+                Delicious Meat Shop
+              </strong>
+              <span style={{ fontSize: '0.62rem', fontWeight: '800', letterSpacing: '0.05em', textTransform: 'uppercase', background: 'rgba(0,0,0,0.35)', padding: '0.25rem 0.6rem', borderRadius: '12px', backdropFilter: 'blur(4px)', boxShadow: '0 2px 4px rgba(0,0,0,0.15)' }}>
+                ⏳ Image Uploading Soon
+              </span>
+            </div>
+          ) : (
+            <Image
+              src={product.image}
+              alt={product.name}
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              style={{ objectFit: 'cover' }}
+              priority={false}
+              onLoad={() => setImgLoaded(true)}
+              className={imgLoaded ? 'loaded' : ''}
+            />
+          )}
           {product.stock === 0 && (
             <div style={{
               position: 'absolute', top: '0.75rem', left: '0.75rem',
@@ -224,7 +257,8 @@ function HomeContent() {
     fetch('/api/products')
       .then(res => res.json())
       .then(data => {
-        setProducts(data);
+        const publicProducts = Array.isArray(data) ? data.filter(p => !p.description?.includes('[HIDDEN]')) : [];
+        setProducts(publicProducts);
         setLoading(false);
       });
 
