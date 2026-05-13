@@ -144,14 +144,16 @@ const CategoryScroll = (props: any) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const handleScroll = (dir: 'left' | 'right') => {
     if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: dir === 'left' ? -350 : 350, behavior: 'smooth' });
+      const card = scrollRef.current.querySelector('.product-card');
+      const offset = card ? card.clientWidth + (window.innerWidth <= 768 ? 10 : 32) : 350;
+      scrollRef.current.scrollBy({ left: dir === 'left' ? -offset : offset, behavior: 'smooth' });
     }
   };
 
   return (
     <div className="slider-wrapper">
       <button className="slider-arrow left" onClick={() => handleScroll('left')} aria-label="Previous">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><line x1="20" y1="12" x2="4" y2="12"></line><polyline points="10 18 4 12 10 6"></polyline></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
       </button>
       <div className="product-grid horizontal-scroll" ref={scrollRef}>
         {products.map((product: any) => (
@@ -163,7 +165,7 @@ const CategoryScroll = (props: any) => {
         ))}
       </div>
       <button className="slider-arrow right" onClick={() => handleScroll('right')} aria-label="Next">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="12" x2="20" y2="12"></line><polyline points="14 6 20 12 14 18"></polyline></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
       </button>
     </div>
   );
@@ -222,13 +224,17 @@ function HomeContent() {
 
   const scrollLeft = () => {
     if (sliderRef.current) {
-      sliderRef.current.scrollBy({ left: -350, behavior: 'smooth' });
+      const card = sliderRef.current.querySelector('.product-card');
+      const offset = card ? card.clientWidth + (window.innerWidth <= 768 ? 10 : 32) : 350;
+      sliderRef.current.scrollBy({ left: -offset, behavior: 'smooth' });
     }
   };
 
   const scrollRight = () => {
     if (sliderRef.current) {
-      sliderRef.current.scrollBy({ left: 350, behavior: 'smooth' });
+      const card = sliderRef.current.querySelector('.product-card');
+      const offset = card ? card.clientWidth + (window.innerWidth <= 768 ? 10 : 32) : 350;
+      sliderRef.current.scrollBy({ left: offset, behavior: 'smooth' });
     }
   };
 

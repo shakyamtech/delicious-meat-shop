@@ -257,52 +257,70 @@
 
 .slider-arrow {
   position: absolute;
-  top: 40%;
+  top: 35%;
   transform: translateY(-50%);
-  z-index: 10;
-  background: transparent;
+  z-index: 20;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  color: #ffffff !important;
   border: none;
   cursor: pointer;
-  opacity: 0.5;
-  padding: 0.5rem;
+  opacity: 0.85;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(4px);
+}
+
+.slider-arrow svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.5px !important;
+  stroke: #ffffff !important;
+  color: #ffffff !important;
 }
 
 .slider-arrow:hover {
   opacity: 1;
-  transform: translateY(-50%) scale(1.1);
+  background: rgba(0, 0, 0, 0.9);
+  transform: translateY(-50%) scale(1.08);
 }
 
 .slider-arrow.left {
-  left: 0;
+  left: -16px;
 }
 
 .slider-arrow.right {
-  right: 0;
+  right: -16px;
 }
 
 @media (max-width: 768px) {
   .slider-wrapper {
-    padding: 0 40px; /* Keep arrows outside even on mobile */
+    padding: 0 4px; /* Allow container to span full width matching regular grids */
   }
   
   .slider-arrow {
     top: 35%;
+    width: 36px;
+    height: 36px;
+    background: rgba(0, 0, 0, 0.35) !important; /* Soften dark overlay intensity on mobile to unmask product imagery */
   }
   
   .slider-arrow svg {
-    width: 24px !important;
-    height: 24px !important;
+    width: 18px !important;
+    height: 18px !important;
   }
 }
 
 .horizontal-scroll {
   display: flex;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
+  scroll-snap-type: x proximity;
   width: 100%;
   flex: 1;
   gap: 2rem;
@@ -316,6 +334,7 @@
   display: none; /* Chrome, Safari and Opera */
 }
 
+/* Fit exactly 3 items side-by-side on large desktop viewports */
 .horizontal-scroll .product-card {
   flex: 0 0 auto;
   width: calc(33.333% - 1.33rem);
@@ -329,6 +348,7 @@
   align-items: stretch;
 }
 
+/* Fallback to 2 items on tablets */
 @media (max-width: 1024px) {
   .horizontal-scroll .product-card {
     width: calc(50% - 1rem);
@@ -340,17 +360,18 @@
     display: flex;
   }
   .slider-arrow.left {
-    left: 0;
+    left: 4px;
   }
   .slider-arrow.right {
-    right: 0;
+    right: 4px;
   }
   .horizontal-scroll {
-    gap: 1.25rem;
+    gap: 0.6rem; /* Match regular grid gap perfectly */
     padding: 0;
   }
+  /* Precisely fit exactly two enlarged cards side-by-side matching regular grid item dimensions */
   .horizontal-scroll .product-card {
-    width: calc(50% - 0.625rem); 
+    width: calc(50% - 0.3rem); 
   }
   
   .product-grid-regular {
@@ -965,45 +986,48 @@
   }
   
   .promo-banner {
-    height: 320px !important;
+    height: 280px !important; /* Expanded height to reveal more top and bottom image details without cropping */
+    margin: 0 !important; /* Eliminate excessive inherited desktop margins so cards sit perfectly spaced by the grid gap */
   }
   
+  /* Dock text ad card to the side so it does not hide the beautiful background center */
   .promo-banner:nth-child(1) {
-    justify-content: center !important;
-    padding-left: 0 !important;
+    justify-content: flex-start !important;
+    padding-left: 1.5rem !important;
   }
   
   .promo-banner:nth-child(2) {
-    justify-content: center !important;
-    padding-right: 0 !important;
+    justify-content: flex-end !important;
+    padding-right: 1.5rem !important;
   }
   
   .promo-content {
-    padding: 0.5rem !important;
-    min-width: 70px !important;
-    max-width: 95px !important;
+    padding: 1rem !important;
+    min-width: 130px !important;
+    max-width: 160px !important;
+    border-radius: 4px;
   }
   
   .promo-content h3 {
-    font-size: 0.85rem !important;
-    letter-spacing: 0.1em !important;
-    margin-bottom: 0.2rem !important;
+    font-size: 1.1rem !important;
+    letter-spacing: 0.15em !important;
+    margin-bottom: 0.25rem !important;
   }
   
   .promo-content p {
-    font-size: 0.5rem !important;
-    margin-bottom: 0.6rem !important;
-    letter-spacing: 0.05em !important;
+    font-size: 0.55rem !important;
+    margin-bottom: 0.8rem !important;
+    letter-spacing: 0.08em !important;
   }
   
   .promo-btn {
-    padding: 0.3rem 0.6rem !important;
-    font-size: 0.5rem !important;
-    letter-spacing: 0.05em !important;
+    padding: 0.4rem 0.8rem !important;
+    font-size: 0.55rem !important;
+    letter-spacing: 0.1em !important;
   }
   
   .promo-side-text {
-    font-size: 0.65rem !important;
+    font-size: 0.75rem !important;
   }
 }
 @media (max-width: 768px) {

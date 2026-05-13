@@ -339,13 +339,21 @@ main {
 
 @media (max-width: 768px) {
   .main-footer .container {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 2rem;
+    grid-template-columns: 1fr !important;
+    gap: 2.5rem !important;
+    text-align: center !important;
   }
   
   .footer-branding {
-    grid-column: span 2;
-    margin-bottom: 1rem;
+    grid-column: span 1 !important;
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .footer-customer-care div {
+    justify-content: center !important;
   }
 }
 
