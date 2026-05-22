@@ -1201,4 +1201,13 @@ body.admin-body main {
   }
 }
 
+/* Logo Border Radius Overrides */
+.sidebar-logo img {
+  border-radius: 8px !important;
+}
+.admin-login-form img {
+  border-radius: 12px !important;
+}
+
+
 

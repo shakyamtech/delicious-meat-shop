@@ -92,7 +92,7 @@ const ProductCard = ({ product, addToCart }: any) => {
                 {product.category === 'Meat' ? '🥩' : product.category === 'Frozen' ? '❄️' : product.category === 'Bakery' ? '🥖' : product.category === 'Dairy' ? '🥛' : '✨'}
               </span>
               <strong style={{ fontSize: '0.95rem', fontFamily: 'Playfair Display, serif', letterSpacing: '0.05em', lineHeight: 1.1, textShadow: '0 2px 4px rgba(0,0,0,0.3)', marginBottom: '0.5rem' }}>
-                Delicious Meat Shop
+                The Meatly
               </strong>
               <span style={{ fontSize: '0.62rem', fontWeight: '800', letterSpacing: '0.05em', textTransform: 'uppercase', background: 'rgba(0,0,0,0.35)', padding: '0.25rem 0.6rem', borderRadius: '12px', backdropFilter: 'blur(4px)', boxShadow: '0 2px 4px rgba(0,0,0,0.15)' }}>
                 ⏳ Image Uploading Soon
@@ -256,8 +256,7 @@ function HomeContent() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
 
-  const [heroBg, setHeroBg] = useState(""); // Dynamic Hero Background
-  const [heroLoaded, setHeroLoaded] = useState(false);
+  const heroBg = "/hero-bg.png";
 
   useEffect(() => {
     fetch('/api/products')
@@ -293,8 +292,6 @@ function HomeContent() {
     window.addEventListener('hashchange', handleHashChange);
     // Trigger on initial load as well
     handleHashChange();
-
-    setHeroBg(`/hero-bg.png?v=${Date.now()}`);
 
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
@@ -424,14 +421,13 @@ function HomeContent() {
   return (
     <>
       {/* Hero */}
-      {heroBg && <img src={heroBg} onLoad={() => setHeroLoaded(true)} style={{ display: 'none' }} alt="" />}
       <section
-        className={`hero luxury-fade-in ${heroLoaded ? 'active' : ''}`}
-        style={heroBg ? {
+        className="hero"
+        style={{
           backgroundImage: `url(${heroBg})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-        } : { background: '#1a1a1a' }}
+        }}
       >
         <div className="hero-overlay">
           <div className="container">
@@ -454,18 +450,29 @@ function HomeContent() {
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><line x1="20" y1="12" x2="4" y2="12"></line><polyline points="10 18 4 12 10 6"></polyline></svg>
             </button>
             <div className="product-grid horizontal-scroll" ref={sliderRef}>
-              {products.length === 0 && (
+              {loading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={`skeleton-slider-${i}`} className="product-card skeleton" style={{ minHeight: '350px' }}>
+                    <div className="product-image skeleton-pulse" style={{ background: 'var(--border)', borderRadius: '8px' }}></div>
+                    <div className="product-info" style={{ gap: '0.8rem' }}>
+                      <div className="skeleton-line skeleton-pulse" style={{ height: '20px', width: '70%', background: 'var(--border)', borderRadius: '4px' }}></div>
+                      <div className="skeleton-line skeleton-pulse" style={{ height: '16px', width: '40%', background: 'var(--border)', borderRadius: '4px' }}></div>
+                    </div>
+                  </div>
+                ))
+              ) : products.length === 0 ? (
                 <p style={{ gridColumn: "1 / -1", textAlign: "center", color: "#999", padding: "4rem 0", fontStyle: "italic" }}>
                   No products found.
                 </p>
+              ) : (
+                products.map((product) => (
+                  <ProductCard 
+                    key={`slider-${product.id}`} 
+                    product={product} 
+                    addToCart={addToCart}
+                  />
+                ))
               )}
-              {products.map((product) => (
-                <ProductCard 
-                  key={`slider-${product.id}`} 
-                  product={product} 
-                  addToCart={addToCart}
-                />
-              ))}
             </div>
             <button className="slider-arrow right" onClick={scrollRight} aria-label="Next">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="12" x2="20" y2="12"></line><polyline points="14 6 20 12 14 18"></polyline></svg>
@@ -515,18 +522,29 @@ function HomeContent() {
           </div>
 
           <div className="product-grid product-grid-regular">
-            {filteredProducts.length === 0 && (
+            {loading ? (
+              Array.from({ length: 8 }).map((_, i) => (
+                <div key={`skeleton-grid-${i}`} className="product-card skeleton" style={{ minHeight: '350px' }}>
+                  <div className="product-image skeleton-pulse" style={{ background: 'var(--border)', borderRadius: '8px' }}></div>
+                  <div className="product-info" style={{ gap: '0.8rem' }}>
+                    <div className="skeleton-line skeleton-pulse" style={{ height: '20px', width: '70%', background: 'var(--border)', borderRadius: '4px' }}></div>
+                    <div className="skeleton-line skeleton-pulse" style={{ height: '16px', width: '40%', background: 'var(--border)', borderRadius: '4px' }}></div>
+                  </div>
+                </div>
+              ))
+            ) : filteredProducts.length === 0 ? (
               <p style={{ gridColumn: "1 / -1", textAlign: "center", color: "#999", padding: "4rem 0", fontStyle: "italic" }}>
                 No products found.
               </p>
+            ) : (
+              filteredProducts.slice(0, showAll ? undefined : (isMobile ? 8 : 12)).map((product) => (
+                <ProductCard 
+                  key={`grid-${product.id}`} 
+                  product={product} 
+                  addToCart={addToCart}
+                />
+              ))
             )}
-            {filteredProducts.slice(0, showAll ? undefined : (isMobile ? 8 : 12)).map((product) => (
-              <ProductCard 
-                key={`grid-${product.id}`} 
-                product={product} 
-                addToCart={addToCart}
-              />
-            ))}
           </div>
 
           {!showAll && filteredProducts.length > (isMobile ? 8 : 12) && (
@@ -543,32 +561,49 @@ function HomeContent() {
 
         {/* Individual Category Sliders */}
         <div className="container" style={{ marginTop: '2rem' }}>
-          {categories.map((item) => {
-            const catProducts = products.filter(p => p.category === item.name);
-            if (catProducts.length === 0) return null;
-            
-            return (
-              <RevealWrapper key={item.name} style={{ marginTop: '5rem', marginBottom: '4rem' }}>
-                <RevealWrapper className="section-header" style={{ marginBottom: '1.5rem' }}>
-                  <h2>{item.name}</h2>
+          {loading ? (
+            <div style={{ marginTop: '5rem', marginBottom: '4rem' }}>
+              <div className="section-header skeleton-pulse" style={{ height: '40px', width: '200px', background: 'var(--border)', margin: '0 auto 1.5rem', borderRadius: '4px' }}></div>
+              <div className="product-grid horizontal-scroll">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={`skeleton-cat-${i}`} className="product-card skeleton" style={{ minHeight: '350px' }}>
+                    <div className="product-image skeleton-pulse" style={{ background: 'var(--border)', borderRadius: '8px' }}></div>
+                    <div className="product-info" style={{ gap: '0.8rem' }}>
+                      <div className="skeleton-line skeleton-pulse" style={{ height: '20px', width: '70%', background: 'var(--border)', borderRadius: '4px' }}></div>
+                      <div className="skeleton-line skeleton-pulse" style={{ height: '16px', width: '40%', background: 'var(--border)', borderRadius: '4px' }}></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            categories.map((item) => {
+              const catProducts = products.filter(p => p.category === item.name);
+              if (catProducts.length === 0) return null;
+              
+              return (
+                <RevealWrapper key={item.name} style={{ marginTop: '5rem', marginBottom: '4rem' }}>
+                  <RevealWrapper className="section-header" style={{ marginBottom: '1.5rem' }}>
+                    <h2>{item.name}</h2>
+                  </RevealWrapper>
+                  <CategoryScroll 
+                    products={catProducts} 
+                    category={item.name} 
+                    addToCart={addToCart}
+                  />
+                  
+                  <div className="view-all-container">
+                    <Link 
+                      href={`/?category=${encodeURIComponent(item.name)}#collection`}
+                      className="view-all-btn"
+                    >
+                      VIEW ALL
+                    </Link>
+                  </div>
                 </RevealWrapper>
-                <CategoryScroll 
-                  products={catProducts} 
-                  category={item.name} 
-                  addToCart={addToCart}
-                />
-                
-                <div className="view-all-container">
-                  <Link 
-                    href={`/?category=${encodeURIComponent(item.name)}#collection`}
-                    className="view-all-btn"
-                  >
-                    VIEW ALL
-                  </Link>
-                </div>
-              </RevealWrapper>
-            );
-          })}
+              );
+            })
+          )}
         </div>
 
         {/* Promotional Sale Banners */}

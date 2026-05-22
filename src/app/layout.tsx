@@ -7,22 +7,25 @@ import "./globals.css";
 
 
 export const metadata: Metadata = {
-  title: "Delicious Meat Shop | Fresh Cold Store",
+  title: "The Meatly | Fresh Cold Store",
   description: "Premium Quality Meat and Cold Store Manager. Fresh chicken, mutton, buff, and pork delivered to your doorstep.",
-  keywords: "Delicious Meat Shop, meat, cold store, chicken, mutton, buff, pork, fresh meat, online shopping Nepal",
+  keywords: "The Meatly, meat, cold store, chicken, mutton, buff, pork, fresh meat, online shopping Nepal",
   openGraph: {
-    title: "Delicious Meat Shop | Fresh Cold Store",
+    title: "The Meatly | Fresh Cold Store",
     description: "Your go-to store for fresh, premium quality meat products.",
-    url: "https://deliciousmeatshop.com",
-    siteName: "Delicious Meat Shop",
+    url: "https://themeatly.com",
+    siteName: "The Meatly",
     images: [{ url: "/og-image.jpg", width: 1200, height: 630 }],
     locale: "en_NP",
     type: "website",
   },
   icons: {
-    icon: "/favicon.png",
-    shortcut: "/favicon.png",
-    apple: "/favicon.png",
+    icon: [
+      { url: "/favicon.ico?v=3" },
+      { url: "/favicon.png?v=3", type: "image/png" }
+    ],
+    shortcut: "/favicon.ico?v=3",
+    apple: "/favicon.png?v=3",
   },
 };
 
@@ -42,10 +45,10 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Store",
-              "name": "Delicious Meat Shop",
-              "image": "https://deliciousmeatshop.com/logo.png",
-              "@id": "https://deliciousmeatshop.com",
-              "url": "https://deliciousmeatshop.com",
+              "name": "The Meatly",
+              "image": "https://themeatly.com/logo.png",
+              "@id": "https://themeatly.com",
+              "url": "https://themeatly.com",
               "telephone": "+9771234567890",
               "address": {
                 "@type": "PostalAddress",

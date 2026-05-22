@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Navigation from "../app/Navigation";
 import FloatingContact from "../app/FloatingContact";
@@ -11,18 +10,7 @@ import NepaliDate from "nepali-date-converter";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const isAdmin = pathname?.startsWith("/admin");
-
-  // During SSR and first client pass, render a consistent shell
-  if (!mounted) {
-    return <div className="loading-shell" style={{ opacity: 0 }}>{children}</div>;
-  }
 
   if (isAdmin) {
     return <div className="admin-layout-root">{children}</div>;
@@ -54,7 +42,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           </div>
           <div>
             <h3>Contact</h3>
-            <p><a href="mailto:shop@deliciousmeat.com" style={{ color: '#aaa' }}>shop@deliciousmeat.com</a></p>
+            <p><a href="mailto:shop@themeatly.com" style={{ color: '#aaa' }}>shop@themeatly.com</a></p>
             <p><a href="tel:+9779762850637" style={{ color: '#aaa' }}>+977 9762850637</a></p>
           </div>
           <div>
@@ -100,7 +88,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               <span style={{ fontSize: '0.8rem', fontWeight: '800', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Bank Transfer</span>
             </Link>
           </div>
-          <p>&copy; {new Date().getFullYear()} ({new NepaliDate().getYear()} BS) Delicious Meat Shop. All rights reserved. Premium Quality Meat & Cold Store.</p>
+          <p suppressHydrationWarning>&copy; {new Date().getFullYear()} ({new NepaliDate().getYear()} BS) The Meatly. All rights reserved. Premium Quality Meat & Cold Store.</p>
         </div>
       </footer>
     </>

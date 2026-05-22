@@ -1512,20 +1512,29 @@ export default function AdminPage() {
         </button>
         {!showForgot ? (
           <form className="admin-login-form" onSubmit={handleLogin} style={{ background: 'var(--admin-card)', border: '1px solid var(--admin-border)', color: 'var(--admin-text)' }}>
-            <div style={{ textAlign: 'center', marginBottom: '2rem', display: 'flex', justifyContent: 'center' }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
+              <img 
+                src="/logo.png" 
+                alt="The Meatly Logo" 
+                style={{ 
+                  width: '80px', 
+                  height: '80px', 
+                  objectFit: 'contain',
+                  filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))',
+                  borderRadius: '12px'
+                }} 
+              />
               <div style={{ 
                 background: "transparent", 
                 color: "var(--admin-text)", 
                 border: "1px solid var(--admin-border)",
-                padding: "0.5rem 1.5rem", 
+                padding: "0.25rem 1rem", 
                 fontWeight: "300", 
-                letterSpacing: "0.25em",
+                letterSpacing: "0.2em",
                 textTransform: "uppercase",
-                display: "inline-flex",
-                justifyContent: "center",
-                alignItems: "center"
+                fontSize: "0.9rem"
               }}>
-                <span style={{ fontSize: "1.4rem", whiteSpace: "nowrap" }}>DELICIOUS MEAT SHOP</span>
+                THE MEATLY
               </div>
             </div>
             <h2 style={{ color: 'var(--admin-text)', fontSize: '1.6rem', fontWeight: '300', letterSpacing: '4px', textTransform: 'uppercase', marginBottom: '0', textAlign: 'center' }}>Welcome</h2>
@@ -1742,7 +1751,7 @@ export default function AdminPage() {
           <button className="mobile-close-btn" onClick={() => setIsMobileMenuOpen(false)}>&times;</button>
           <img 
             src="/logo.png" 
-            alt="Delicious Meat Shop Logo" 
+            alt="The Meatly Logo" 
             style={{ 
               width: '64px', 
               height: 'auto', 
@@ -1769,7 +1778,7 @@ export default function AdminPage() {
             width: "100%",
             boxSizing: "border-box"
           }}>
-            Delicious Meat Shop
+            The Meatly
           </div>
         </div>
         <nav className="sidebar-nav">
@@ -3615,7 +3624,7 @@ export default function AdminPage() {
               <section className="theme-card" style={{ flex: "1 1 100%", padding: "2rem", borderRadius: "12px", border: "1px solid var(--admin-border)" }}>
                 <h2 style={{ marginBottom: '0.5rem' }}>Interface Theme</h2>
                 <p style={{ color: 'var(--admin-text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-                  Personalize how your Delicious Meat Shop Admin Suite looks.
+                  Personalize how your The Meatly Admin Suite looks.
                 </p>
                 <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                   {[
@@ -3723,7 +3732,7 @@ export default function AdminPage() {
         </div>
 
         <footer style={{ marginTop: '4rem', padding: '2rem 0', textAlign: 'center', borderTop: '1px solid var(--admin-border)', color: 'var(--admin-text-muted)', fontSize: '0.8rem', opacity: 0.6 }}>
-          <p>&copy; {new Date().getFullYear()} Delicious Meat Shop • Fresh Cold Store</p>
+          <p>&copy; {new Date().getFullYear()} The Meatly • Fresh Cold Store</p>
           <p style={{ marginTop: '0.5rem' }}>Premium Cold Store Management</p>
         </footer>
       </main>
@@ -3769,7 +3778,7 @@ const PrintableBill = ({ printingOrders }: { printingOrders: any[] }) => {
       {printingOrders.map((order) => (
         <div key={order.id} className="bill-page" style={{ color: '#000000', background: '#ffffff', padding: '20px', border: 'none' }}>
           <div className="bill-header" style={{ borderBottom: '2px solid black', paddingBottom: '0.6rem', marginBottom: '1rem', textAlign: 'center' }}>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: '900', letterSpacing: '0.2em', textTransform: 'uppercase', margin: '0 0 0.1rem 0', color: 'black' }}>DELICIOUS MEAT SHOP</h1>
+            <h1 style={{ fontSize: '1.8rem', fontWeight: '900', letterSpacing: '0.2em', textTransform: 'uppercase', margin: '0 0 0.1rem 0', color: 'black' }}>THE MEATLY</h1>
             <p style={{ color: 'black', margin: 0, fontSize: '0.8rem' }}>Invoice for Order #{order.id}</p>
           </div>
           <div className="bill-section" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', color: 'black', marginBottom: '1rem' }}>
@@ -3810,7 +3819,7 @@ const PrintableBill = ({ printingOrders }: { printingOrders: any[] }) => {
           </table>
           <div className="bill-total" style={{ marginTop: '1rem', paddingTop: '0.8rem', borderTop: '1px solid black' }}>
             <div style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#666', marginBottom: '8px' }}>
-              Thank you for choosing Delicious Meat Shop. We appreciate your business!
+              Thank you for choosing The Meatly. We appreciate your business!
             </div>
             <div style={{ fontSize: '0.8rem', color: '#000', textAlign: 'right' }}>
               Total Items: {(order.rawItems || order.items || []).reduce((acc: number, item: any) => acc + (item.quantity || 1), 0)}

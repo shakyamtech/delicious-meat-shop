@@ -235,7 +235,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
                   {product.category === 'Meat' ? '🥩' : product.category === 'Frozen' ? '❄️' : product.category === 'Bakery' ? '🥖' : product.category === 'Dairy' ? '🥛' : '✨'}
                 </span>
                 <strong style={{ fontSize: '1.8rem', fontFamily: 'Playfair Display, serif', letterSpacing: '0.05em', lineHeight: 1.1, textShadow: '0 4px 8px rgba(0,0,0,0.3)', marginBottom: '1rem' }}>
-                  Delicious Meat Shop
+                  The Meatly
                 </strong>
                 <span style={{ fontSize: '0.85rem', fontWeight: '800', letterSpacing: '0.1em', textTransform: 'uppercase', background: 'rgba(0,0,0,0.35)', padding: '0.4rem 1.2rem', borderRadius: '30px', backdropFilter: 'blur(8px)', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
                   ⏳ Image Uploading Soon

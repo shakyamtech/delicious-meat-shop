@@ -320,6 +320,7 @@
 .horizontal-scroll {
   display: flex;
   overflow-x: auto;
+  overflow-y: hidden;
   scroll-snap-type: x proximity;
   width: 100%;
   flex: 1;
@@ -620,6 +621,10 @@
   
   .horizontal-scroll .product-info {
     flex-grow: 1 !important;
+  }
+  
+  .product-card:hover {
+    transform: none;
   }
 }
 
@@ -1106,5 +1111,29 @@
     left: 20px;
     padding: 0.5rem 0.8rem;
     font-size: 0.8rem;
+  }
+}
+
+/* ─── Loading Skeletons ─── */
+.skeleton {
+  pointer-events: none;
+  border-color: var(--border) !important;
+  background: white;
+}
+
+.skeleton-pulse {
+  background-color: var(--border);
+  animation: skeleton-pulse-animation 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse-animation {
+  0% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.65;
   }
 }
