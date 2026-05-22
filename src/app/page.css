@@ -11,6 +11,17 @@
   overflow: hidden;
 }
 
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+  transform: scale(1.15);
+  opacity: 0;
+  animation: heroBgFadeIn 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 .hero-overlay {
   position: relative;
   z-index: 2;
@@ -25,6 +36,19 @@
   inset: 0;
   background: linear-gradient(to top, rgba(0,0,0,0.4), transparent 50%);
   z-index: 1;
+}
+
+/* Entrance Animations */
+.hero-title-animate {
+  opacity: 0;
+  transform: translateY(40px);
+  animation: heroFadeInUp 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.4s;
+}
+
+.hero-cta-animate {
+  opacity: 0;
+  transform: translateY(30px);
+  animation: heroFadeInUp 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.7s;
 }
 
 .hero h1 {
@@ -69,6 +93,24 @@
   background: var(--foreground);
   transform: translateY(-2px);
   box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+@keyframes heroBgFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes heroFadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ─── Section Headers ─── */

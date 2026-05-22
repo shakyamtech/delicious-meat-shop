@@ -515,9 +515,73 @@ main {
 
 @media (max-width: 768px) {
   .fab-container {
-    bottom: 1.5rem;
-    right: 1.5rem;
+    bottom: 20px;
+    right: 20px;
   }
-  .fab-main { width: 50px; height: 50px; }
-  .fab-sub { width: 42px; height: 42px; }
+  .fab-main { 
+    width: 44px; 
+    height: 44px; 
+  }
+  .fab-main svg {
+    width: 22px;
+    height: 22px;
+  }
+  .fab-sub { 
+    width: 38px; 
+    height: 38px; 
+  }
+}
+
+/* ─── Go Up / Scroll to Top Button ─── */
+.go-up-button {
+  position: fixed;
+  bottom: 20px;
+  right: 95px; /* Offset to the left of the Floating Contact button */
+  width: 60px; /* Same size as .fab-main */
+  height: 60px;
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px -5px rgba(139, 0, 0, 0.4); /* Primary glow */
+  cursor: pointer;
+  z-index: 998; /* Just below contact button so click events don't get blocked */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(20px) scale(0.8);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.go-up-button.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+@media (hover: hover) {
+  .go-up-button:hover {
+    background: var(--secondary);
+    box-shadow: 0 10px 25px -5px rgba(45, 70, 40, 0.4); /* Secondary glow */
+    transform: translateY(-5px) scale(1.05);
+  }
+}
+
+.go-up-button:active {
+  transform: translateY(0) scale(0.95);
+}
+
+@media (max-width: 768px) {
+  .go-up-button {
+    bottom: 20px;
+    right: 76px; /* Spaced to the left of contact button on mobile */
+    width: 44px;
+    height: 44px;
+  }
+  .go-up-button svg {
+    width: 22px;
+    height: 22px;
+  }
 }

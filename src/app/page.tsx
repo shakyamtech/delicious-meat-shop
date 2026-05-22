@@ -421,18 +421,21 @@ function HomeContent() {
   return (
     <>
       {/* Hero */}
-      <section
-        className="hero"
-        style={{
-          backgroundImage: `url(${heroBg})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
+      <section className="hero">
+        <div
+          className="hero-bg"
+          style={{
+            backgroundImage: `url(${heroBg})`,
+          }}
+        />
         <div className="hero-overlay">
           <div className="container">
-            <h1>Fresh from the Coldstore</h1>
-            <a href="#catalog" className="hero-cta">Shop now</a>
+            <div className="hero-title-animate">
+              <h1>Fresh from the Coldstore</h1>
+            </div>
+            <div className="hero-cta-animate">
+              <a href="#catalog" className="hero-cta">Shop now</a>
+            </div>
           </div>
         </div>
       </section>

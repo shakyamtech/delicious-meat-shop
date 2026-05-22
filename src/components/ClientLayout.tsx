@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Navigation from "../app/Navigation";
 import FloatingContact from "../app/FloatingContact";
 import FloatingCart from "../app/FloatingCart";
+import GoUpButton from "../app/GoUpButton";
 import SiteLogo from "../app/SiteLogo";
 import Link from "next/link";
 import NepaliDate from "nepali-date-converter";
@@ -21,6 +22,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       <Navigation />
       <main>{children}</main>
       <FloatingContact />
+      <GoUpButton />
       <footer className="main-footer">
         <div className="container">
           <div className="footer-branding">
